@@ -442,34 +442,32 @@ function calcScores() {
   return scores;
 }
 
-function scoreToLevel(score) {
-  if (score <= 3) return 'L';
-  if (score === 4) return 'M';
-  return 'H';
-}
-
 function calcPattern(scores) {
   const dims = ['S1','S2','S3','E1','E2','E3','A1','A2','A3','Ac1','Ac2','Ac3','So1','So2','So3'];
-  return dims.map(d => scoreToLevel(scores[d])).join('');
+  return dims.map(d => scores[d]).join('');
 }
 
-function manhattanDist(p1, p2) {
-  const map = {'L':0,'M':1,'H':2};
+const charLevelMap = { 'L': 2, 'M': 4, 'H': 6 };
+
+function distRaw(userPat, charPat) {
   let dist = 0;
-  for (let i = 0; i < p1.length; i++) {
-    dist += Math.abs((map[p1[i]]||1) - (map[p2[i]]||1));
+  for (let i = 0; i < 15; i++) {
+    const u = parseInt(userPat[i]);
+    const c = charLevelMap[charPat[i]] || 4;
+    const diff = u - c;
+    dist += diff * diff;
   }
   return dist;
 }
 
 function calcMatch(dist) {
-  return Math.max(0, Math.round((1 - dist / 30) * 100));
+  return Math.max(0, Math.round((1 - dist / 240) * 100));
 }
 
 function findMatches(pattern) {
   return characters.map(c => {
     const p = c.pattern.replace(/\s/g, '');
-    const dist = manhattanDist(pattern, p);
+    const dist = distRaw(pattern, p);
     return { ...c, dist, match: calcMatch(dist) };
   }).sort((a, b) => b.match - a.match || a.dist - b.dist);
 }
@@ -481,8 +479,8 @@ function renderResult(el) {
   const topMatch = matches[0].match;
   const ties = matches.filter(m => m.match === topMatch);
   const sel = ties[selectedIdx] || ties[0];
-  const isEasterEgg = pattern === 'MMMMMMMMMMMMMMM';
-  const isChaos = pattern === 'HHHHHHHHHHHHHHH' || pattern === 'LLLLLLLLLLLLLLL';
+  const isEasterEgg = pattern === '444444444444444';
+  const isChaos = pattern.split('').every(c => c === '6') || pattern.split('').every(c => c === '2');
 
   const patternDisplay = pattern.replace(/\s/g,'').replace(/(.3)/g,'$1 ').trim();
 
