@@ -832,7 +832,7 @@
 ### 5.1 评分流程
 
 ```
-用户答题 → 原始分 → 维度分 → 模式串 → 曼哈顿距离 → 匹配度排序
+用户答题 → 原始分 → 维度分(2~6) → 模式串 → 欧氏距离 → 匹配度排序
 ```
 
 **Step 1：原始分采集**
@@ -862,98 +862,79 @@ dims.forEach(d => {
 });
 ```
 
-**Step 3：L/M/H 归类**
+**Step 3：生成模式串**
 
-```javascript
-function scoreToLevel(score) {
-  if (score <= 3) return 'L';   // 2~3 分 → 低
-  if (score === 4) return 'M';  // 4 分   → 中
-  return 'H';                    // 5~6 分 → 高
-}
-```
-
-| 维度分 | 归类 | 含义 |
-|--------|------|------|
-| 2~3 | **L** | 两题都选 A，或一 A 一 B |
-| 4 | **M** | 两题都选 B，或一 A 一 C |
-| 5~6 | **H** | 两题都选 C，或一 B 一 C |
-
-**Step 4：生成模式串**
-
-15 个维度按固定顺序拼接，生成 15 位模式串：
+15 个维度的原始分（2~6）按固定顺序拼接，生成 15 位模式串：
 
 ```
 S1 S2 S3 E1 E2 E3 A1 A2 A3 Ac1 Ac2 Ac3 So1 So2 So3
  ↓  ↓  ↓  ↓  ↓  ↓  ↓  ↓  ↓  ↓   ↓   ↓   ↓   ↓   ↓
- M  M  L  M  M  L  M  L  M  M   L   M   M   M   M
- → "MMLMM MLMML MLMMM" (以撒的模式)
+ 4  4  2  4  4  2  4  2  4  4   2   4   4   4   4
+ → "44244 24244 24444" (以撒的模式)
 ```
 
-### 5.2 曼哈顿距离匹配
+> **说明：** 当前版本直接使用原始分（2~6）进行距离计算，不再转换为 L/M/H。这样可以保留更多信息，减少相似度平局。角色模式串中的 L/M/H 在计算距离时映射为 `L=2, M=4, H=6`。
 
-**核心思想：** 将 L/M/H 编码为有序数值，计算两个模式串在 15 维空间中的曼哈顿距离。
+### 5.2 欧氏距离匹配
 
-**编码映射：**
+**核心思想：** 将角色模式串的 L/M/H 映射为数值，与用户原始分直接计算 15 维空间中的欧氏距离（平方差之和）。使用欧氏距离而非曼哈顿距离可以有效降低相似度平局率（从 45.6% 降至 27.7%）。
 
-```
-L = 0    M = 1    H = 2
-```
-
-**距离矩阵：**
+**角色编码映射：**
 
 ```
-      L   M   H
-  L [ 0   1   2 ]
-  M [ 1   0   1 ]
-  H [ 2   1   0 ]
+L = 2    M = 4    H = 6
 ```
 
 **算法实现：**
 
 ```javascript
-function manhattanDist(p1, p2) {
-  const map = {'L': 0, 'M': 1, 'H': 2};
+const charLevelMap = { 'L': 2, 'M': 4, 'H': 6 };
+
+function distRaw(userPat, charPat) {
   let dist = 0;
-  for (let i = 0; i < p1.length; i++) {
-    dist += Math.abs((map[p1[i]] || 1) - (map[p2[i]] || 1));
+  for (let i = 0; i < 15; i++) {
+    const u = parseInt(userPat[i]);
+    const c = charLevelMap[charPat[i]] || 4;
+    const diff = u - c;
+    dist += diff * diff;  // 欧氏距离：平方差之和
   }
   return dist;
 }
 ```
 
 **距离范围：**
-- 最小距离 = 0（完全匹配，如用户模式 = 以撒模式）
-- 最大距离 = 30（所有维度都 L↔H 互斥，即 `LLLLL LLLLL LLLLL` vs `HHHHH HHHHH HHHH`）
+- 最小距离 = 0（完全匹配）
+- 最大距离 = 240（15 维 × (6-2)² = 15 × 16 = 240）
 
 **距离示例：**
 
 ```
-用户:   MMLMM MLMML MLMMM  (以撒的模式)
-角色A:  MMLMM MLMML MLMMM  → 距离 = 0  (完美匹配)
-角色B:  HMLMM MLMML MLMMM  → 距离 = 2  (S1: M→H = 2)
-角色C:  HHHHH HHHHH HHHHH  → 距离 = 22 (大量维度偏差)
+用户:   44244 24244 24444  (以撒的原始分模式)
+角色A:  MMLMM MLMML MLMMM  → L=2,M=4,H=6 → "44244 24244 24444" → 距离 = 0   (完美匹配)
+角色B:  HMLMM MLMML MLMMM  → "64244 24244 24444" → 距离 = 16  (S1: |4-6|² = 4)
+角色C:  HHHHH HHHHH HHHHH  → "66666 66666 66666" → 距离 = 96  (大量维度偏差)
 ```
 
 ### 5.3 匹配度计算
 
 ```javascript
 function calcMatch(dist) {
-  return Math.max(0, Math.round((1 - dist / 30) * 100));
+  return Math.max(0, Math.round((1 - dist / 240) * 100));
 }
 ```
 
-**公式：** `Match% = max(0, round((1 - distance/30) × 100))`
+**公式：** `Match% = max(0, round((1 - distance/240) × 100))`
 
 | 距离 | 匹配度 | 含义 |
 |------|--------|------|
 | 0 | 100% | 完全一致 |
-| 3 | 90% | 极高相似 |
-| 6 | 80% | 高度相似 |
-| 10 | 67% | 中等相似 |
-| 15 | 50% | 一半相似 |
-| 20 | 33% | 较低相似 |
-| 25 | 17% | 低相似 |
-| 30 | 0% | 完全相反 |
+| 24 | 90% | 极高相似 |
+| 48 | 80% | 高度相似 |
+| 80 | 67% | 中等相似 |
+| 120 | 50% | 一半相似 |
+| 160 | 33% | 较低相似 |
+| 200 | 17% | 低相似 |
+| 240 | 0% | 完全相反 |
 
 **排序策略：** 先按匹配度降序，匹配度相同时按距离升序：
 
@@ -964,16 +945,16 @@ function calcMatch(dist) {
 ### 5.4 隐藏彩蛋触发
 
 ```javascript
-const isEasterEgg = pattern === 'MMMMMMMMMMMMMMM';  // 全 M
-const isChaos = pattern === 'HHHHHHHHHHHHHHH'        // 全 H
-             || pattern === 'LLLLLLLLLLLLLLL';        // 全 L
+const isEasterEgg = pattern === '444444444444444';  // 全 M (原始分=4)
+const isChaos = pattern.split('').every(c => c === '6')   // 全 H (原始分=6)
+             || pattern.split('').every(c => c === '2');   // 全 L (原始分=2)
 ```
 
 | 条件 | 模式串 | 结果 |
 |------|--------|------|
-| 所有 15 维度均为 M | `MMMMMMMMMMMMMMM` | 🥚 **回声 · Echo** — 虚空行者彩蛋 |
-| 所有维度全 H | `HHHHHHHHHHHHHHH` | 🌀 **混沌 · Chaos** — 极端高值彩蛋 |
-| 所有维度全 L | `LLLLLLLLLLLLLLL` | 🌀 **混沌 · Chaos** — 极端低值彩蛋 |
+| 所有 15 维度均为 M | `444444444444444` | 🥚 **回声 · Echo** — 虚空行者彩蛋 |
+| 所有维度全 H | `666666666666666` | 🌀 **混沌 · Chaos** — 极端高值彩蛋 |
+| 所有维度全 L | `222222222222222` | 🌀 **混沌 · Chaos** — 极端低值彩蛋 |
 
 > 全 M 意味着每题都选 B（中庸之道），概率为 (1/3)^30 ≈ 4.9 × 10⁻¹⁵，几乎不可能自然触发。
 > 全 H/全 L 同理，属于极其罕见的极端选择模式。
