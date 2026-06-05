@@ -72,6 +72,36 @@ body { background:#1a0a1a; color:#e0d0e0; font-family:'Segoe UI',system-ui,sans-
 
 @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
 .fade-in { animation:fadeIn 0.4s ease-out; }
+
+.debug-bar { position:fixed; top:0; left:0; right:0; z-index:99; background:#2a0a3a; border-bottom:2px solid #9b59b6; padding:8px 20px; display:flex; align-items:center; gap:15px; font-size:13px; }
+.debug-bar .debug-title { font-family:'Press Start 2P',monospace; color:#9b59b6; font-size:10px; }
+.debug-bar .debug-btn { background:transparent; border:1px solid #9b59b6; color:#9b59b6; padding:4px 10px; cursor:pointer; font-size:12px; font-family:inherit; border-radius:4px; }
+.debug-bar .debug-btn:hover { background:#9b59b6; color:#fff; }
+.debug-bar .debug-btn.active { background:#9b59b6; color:#fff; }
+.debug-gallery { padding-top:60px; }
+.debug-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:16px; padding:10px 0; }
+.debug-card { background:#2a1a2a; border:1px solid #4a2a4a; border-radius:12px; padding:20px; transition:border-color 0.2s; }
+.debug-card:hover { border-color:#ff6b6b; }
+.debug-card .dc-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+.debug-card .dc-img { width:64px; height:64px; image-rendering:pixelated; }
+.debug-card .dc-info { flex:1; }
+.debug-card .dc-name { font-family:'Press Start 2P',monospace; color:#ff6b6b; font-size:12px; }
+.debug-card .dc-cn { color:#fff; font-size:20px; margin-top:4px; }
+.debug-card .dc-code { font-family:'Press Start 2P',monospace; color:#4a2a4a; font-size:10px; }
+.debug-card .dc-pattern { font-family:'Press Start 2P',monospace; color:#ff6b6b; font-size:11px; letter-spacing:3px; margin:8px 0; padding:6px 10px; background:#1a0a1a; border-radius:4px; display:inline-block; }
+.debug-card .dc-quote { color:#b090b0; font-style:italic; font-size:13px; margin:8px 0; line-height:1.5; }
+.debug-card .dc-desc { color:#d0c0d0; font-size:13px; line-height:1.6; margin-top:8px; }
+.debug-card .dc-mech { color:#9b59b6; font-size:12px; margin-top:8px; line-height:1.5; }
+.debug-filter { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0; }
+.debug-filter .filter-btn { background:transparent; border:1px solid #4a2a4a; color:#b090b0; padding:4px 12px; cursor:pointer; font-size:12px; font-family:inherit; border-radius:20px; }
+.debug-filter .filter-btn:hover, .debug-filter .filter-btn.active { border-color:#ff6b6b; color:#ff6b6b; }
+.debug-count { color:#b090b0; font-size:12px; margin-bottom:10px; }
+.debug-table { width:100%; border-collapse:collapse; margin:10px 0; font-size:12px; }
+.debug-table th { color:#ff6b6b; text-align:left; padding:6px 8px; border-bottom:1px solid #4a2a4a; font-weight:normal; font-size:11px; }
+.debug-table td { padding:6px 8px; border-bottom:1px solid #2a1a2a; color:#d0c0d0; }
+.debug-table tr:hover td { background:#2a1a2a; }
+.debug-table .dt-pattern { font-family:'Press Start 2P',monospace; font-size:9px; letter-spacing:2px; color:#ff6b6b; }
+.debug-table .dt-img { width:32px; height:32px; image-rendering:pixelated; vertical-align:middle; margin-right:6px; }
 </style>
 </head>
 <body>
@@ -204,6 +234,10 @@ body { background:#1a0a1a; color:#e0d0e0; font-family:'Segoe UI',system-ui,sans-
 let lang = 'cn';
 let currentQ = 0;
 let answers = [];
+let debugView = 'gallery';
+let debugFilter = 'all';
+
+const isDebug = new URLSearchParams(window.location.search).has('debug');
 
 function toggleLang() {
   lang = lang === 'cn' ? 'en' : 'cn';
@@ -214,12 +248,94 @@ function t(cn, en) { return lang === 'cn' ? cn : en; }
 
 function render() {
   const app = document.getElementById('app');
-  if (currentQ === 0 && answers.length === 0) {
+  if (isDebug) {
+    renderDebug(app);
+  } else if (currentQ === 0 && answers.length === 0) {
     renderWelcome(app);
   } else if (answers.length < questions.length) {
     renderQuestion(app);
   } else {
     renderResult(app);
+  }
+}
+
+function renderDebug(el) {
+  const filtered = debugFilter === 'all' ? characters
+    : debugFilter === 'base' ? characters.filter(c => !c.code.startsWith('T_'))
+    : debugFilter === 'tainted' ? characters.filter(c => c.code.startsWith('T_'))
+    : characters;
+
+  const bar = `
+    <div class="debug-bar">
+      <span class="debug-title">🔧 DEBUG</span>
+      <button class="debug-btn ${debugView==='gallery'?'active':''}" onclick="debugView='gallery';render()">Gallery</button>
+      <button class="debug-btn ${debugView==='table'?'active':''}" onclick="debugView='table';render()">Table</button>
+      <button class="debug-btn" onclick="isDebug=false;history.replaceState(null,'','?');render()">← Exit</button>
+      <span style="flex:1"></span>
+      <span style="color:#b090b0;font-size:11px">${filtered.length}/${characters.length} ${t('角色','chars')}</span>
+    </div>
+  `;
+
+  const filters = `
+    <div class="debug-filter">
+      <button class="filter-btn ${debugFilter==='all'?'active':''}" onclick="debugFilter='all';render()">All (${characters.length})</button>
+      <button class="filter-btn ${debugFilter==='base'?'active':''}" onclick="debugFilter='base';render()">Base (${characters.filter(c=>!c.code.startsWith('T_')).length})</button>
+      <button class="filter-btn ${debugFilter==='tainted'?'active':''}" onclick="debugFilter='tainted';render()">Tainted (${characters.filter(c=>c.code.startsWith('T_')).length})</button>
+    </div>
+  `;
+
+  if (debugView === 'gallery') {
+    el.innerHTML = bar + `<div class="debug-gallery"><div class="container">
+      <h2 style="color:#ff6b6b;margin-bottom:5px">${t('全部角色一览','All Characters Gallery')}</h2>
+      ${filters}
+      <div class="debug-grid">
+        ${filtered.map(c => {
+          const p = c.pattern.replace(/\s/g,'').replace(/(.{3})/g,'$1 ').trim();
+          return `
+            <div class="debug-card">
+              <div class="dc-header">
+                <img class="dc-img" src="${imgMap[c.img]||''}" alt="${c.en}" />
+                <div class="dc-info">
+                  <div class="dc-code">${c.code}</div>
+                  <div class="dc-name">${c.en}</div>
+                  <div class="dc-cn">${c.cn}</div>
+                </div>
+              </div>
+              <div class="dc-pattern">${p}</div>
+              <div class="dc-quote">${t(c.quote_cn, c.quote_en)}</div>
+              <div class="dc-desc">${t(c.char_desc_cn, c.char_desc_en)}</div>
+              <div class="dc-mech">${t(c.desc_cn, c.desc_en)}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </div></div>
+    <div class="footer">IsaacTI Debug Mode - ${t('以撒人格测试','The Binding of Isaac Personality Test')}</div>
+    `;
+  } else {
+    el.innerHTML = bar + `<div class="debug-gallery"><div class="container">
+      <h2 style="color:#ff6b6b;margin-bottom:5px">${t('角色模式表','Character Pattern Table')}</h2>
+      ${filters}
+      <table class="debug-table">
+        <tr>
+          <th></th><th>${t('代码','Code')}</th><th>${t('名称','Name')}</th>
+          <th>${t('模式','Pattern')}</th><th>${t('类型','Type')}</th>
+        </tr>
+        ${filtered.map(c => {
+          const p = c.pattern.replace(/\s/g,'').replace(/(.{3})/g,'$1 ').trim();
+          const isTainted = c.code.startsWith('T_');
+          return `<tr>
+            <td><img class="dt-img" src="${imgMap[c.img]||''}" alt="${c.en}" /></td>
+            <td>${c.code}</td>
+            <td>${c.cn} ${c.en}</td>
+            <td><span class="dt-pattern">${p}</span></td>
+            <td style="color:${isTainted?'#9b59b6':'#b090b0'}">${isTainted?'Tainted':'Base'}</td>
+          </tr>`;
+        }).join('')}
+      </table>
+    </div></div>
+    <div class="footer">IsaacTI Debug Mode - ${t('以撒人格测试','The Binding of Isaac Personality Test')}</div>
+    `;
   }
 }
 
@@ -233,6 +349,7 @@ function renderWelcome(el) {
       )}</p>
       <div class="char-count">${characters.length} ${t('个人物','Characters')}</div>
       <button class="btn start-btn" onclick="startTest()">${t('开始测试','START TEST')}</button>
+      <div style="margin-top:30px"><a href="?debug" style="color:#4a2a4a;font-size:11px;text-decoration:none">v1.0</a></div>
     </div>
   `;
 }
