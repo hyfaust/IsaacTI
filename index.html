@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IsaacTI - The Binding of Isaac Personality Test</title>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a0a1a; color:#e0d0e0; font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+.pixel-font { font-family:'Press Start 2P',monospace; }
+.container { max-width:800px; margin:0 auto; padding:20px; }
+.btn { background:#4a1a4a; border:2px solid #ff6b6b; color:#ff6b6b; padding:12px 24px; cursor:pointer; font-size:16px; transition:all 0.2s; font-family:inherit; }
+.btn:hover { background:#ff6b6b; color:#1a0a1a; }
+.btn:disabled { opacity:0.5; cursor:not-allowed; }
+.lang-toggle { position:fixed; top:10px; right:10px; z-index:100; background:#2a1a2a; border:1px solid #ff6b6b; color:#ff6b6b; padding:8px 16px; cursor:pointer; font-size:14px; }
+.lang-toggle:hover { background:#ff6b6b; color:#1a0a1a; }
+
+.welcome { text-align:center; padding:40px 20px; }
+.welcome h1 { font-family:'Press Start 2P',monospace; color:#ff6b6b; font-size:24px; margin-bottom:20px; line-height:1.6; }
+.welcome .subtitle { color:#b090b0; font-size:16px; margin-bottom:30px; line-height:1.8; }
+.welcome .start-btn { font-family:'Press Start 2P',monospace; font-size:18px; padding:20px 40px; }
+.char-count { color:#ff6b6b; font-size:20px; margin:15px 0; }
+
+.progress-bar { width:100%; height:8px; background:#2a1a2a; border-radius:4px; margin:20px 0; }
+.progress-fill { height:100%; background:linear-gradient(90deg,#ff6b6b,#ff9f6b); border-radius:4px; transition:width 0.3s; }
+.progress-text { text-align:center; color:#b090b0; font-size:14px; margin-bottom:10px; }
+
+.question-card { background:#2a1a2a; border:1px solid #4a2a4a; border-radius:12px; padding:30px; margin:20px 0; }
+.question-dim { color:#ff6b6b; font-size:12px; margin-bottom:10px; text-transform:uppercase; letter-spacing:2px; }
+.question-text { font-size:20px; line-height:1.6; margin-bottom:25px; color:#fff; }
+.options { display:flex; flex-direction:column; gap:12px; }
+.option { background:#1a0a1a; border:2px solid #4a2a4a; border-radius:8px; padding:16px 20px; cursor:pointer; transition:all 0.2s; font-size:16px; color:#d0c0d0; text-align:left; width:100%; font-family:inherit; }
+.option:hover { border-color:#ff6b6b; background:#3a1a3a; }
+.option.selected { border-color:#ff6b6b; background:#4a1a4a; color:#fff; }
+.option .opt-label { color:#ff6b6b; font-weight:bold; margin-right:10px; }
+
+.result-page { text-align:center; padding:20px; }
+.result-title { font-family:'Press Start 2P',monospace; color:#ff6b6b; font-size:20px; margin:20px 0; line-height:1.6; }
+.match-card { background:#2a1a2a; border:2px solid #ff6b6b; border-radius:16px; padding:30px; margin:20px auto; max-width:500px; }
+.match-card .char-name { font-family:'Press Start 2P',monospace; font-size:18px; color:#ff6b6b; margin:10px 0; }
+.match-card .char-name-cn { font-size:28px; color:#fff; margin:5px 0; }
+.match-card .char-img { width:96px; height:96px; image-rendering:pixelated; margin:15px auto; display:block; }
+.match-card .match-pct { font-family:'Press Start 2P',monospace; font-size:36px; color:#ff9f6b; margin:10px 0; }
+.match-card .char-quote { color:#b090b0; font-style:italic; margin:10px 0; font-size:15px; line-height:1.6; }
+.match-card .char-desc { color:#d0c0d0; margin:15px 0; font-size:14px; line-height:1.8; text-align:left; }
+
+.radar-container { margin:30px auto; max-width:400px; }
+.radar-container canvas { width:100%; height:auto; }
+
+.pattern-display { background:#1a0a1a; border:1px solid #4a2a4a; border-radius:8px; padding:15px; margin:20px auto; max-width:500px; font-family:'Press Start 2P',monospace; font-size:14px; color:#ff6b6b; letter-spacing:4px; word-break:break-all; }
+.pattern-label { color:#b090b0; font-size:12px; margin-bottom:8px; }
+
+.ranking { margin:30px auto; max-width:500px; text-align:left; }
+.ranking h3 { color:#ff6b6b; margin-bottom:15px; text-align:center; }
+.rank-item { display:flex; align-items:center; background:#2a1a2a; border:1px solid #4a2a4a; border-radius:8px; padding:12px; margin:8px 0; cursor:pointer; transition:all 0.2s; }
+.rank-item:hover { border-color:#ff6b6b; }
+.rank-item:first-child { border-color:#ff9f6b; }
+.rank-num { font-family:'Press Start 2P',monospace; color:#ff6b6b; font-size:14px; width:40px; }
+.rank-img { width:48px; height:48px; image-rendering:pixelated; margin:0 12px; }
+.rank-info { flex:1; }
+.rank-name { color:#fff; font-size:16px; }
+.rank-sub { color:#b090b0; font-size:12px; }
+.rank-pct { font-family:'Press Start 2P',monospace; color:#ff9f6b; font-size:14px; }
+
+.easter-egg { background:linear-gradient(135deg,#2a0a3a,#0a1a2a); border:2px solid #9b59b6; border-radius:12px; padding:20px; margin:20px auto; max-width:500px; text-align:center; }
+.easter-egg .egg-title { font-family:'Press Start 2P',monospace; color:#9b59b6; font-size:14px; }
+.easter-egg .egg-text { color:#d0b0e0; margin:10px 0; font-size:14px; line-height:1.6; }
+
+.restart-btn { margin:30px auto; display:block; font-family:'Press Start 2P',monospace; font-size:12px; padding:15px 30px; }
+.footer { text-align:center; padding:30px; color:#4a3a4a; font-size:12px; margin-top:40px; }
+
+@keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+.fade-in { animation:fadeIn 0.4s ease-out; }
+</style>
+</head>
+<body>
+<button class="lang-toggle" onclick="toggleLang()">EN/中</button>
+<div class="container" id="app"></div>
+
+<script>
+    const imgMap = {
+      "apollyon": "data:image/webp;base64,UklGRngAAABXRUJQVlA4TGwAAAAvH8AHEHW4bdtIkL7Ga+Zb+j5392azT8cYBoMQ/Z+A/ps/F9tFCe1l4wK+fmYmtjcyx9xoMi9DV8m8DrUplkjILiRUBnYwt0JuJWRgQlJpZt2sdOmxnB+1Zt486DpzetA3MUky6Lte9vVd/9c=",
+      "azazel": "data:image/webp;base64,UklGRpIAAABXRUJQVlA4TIYAAAAvH8AHEDW4iSTJkYbCgFh3+LN7tWJeu1VCgoToZd9H/xW2bdtIdtLxCT/L6HmeCACeEcDJHipuxCOefQECAAA00iZFOtAnTS1qA7XEpqWx5Rgt8UU8n4wv7umgliGSEttiIJYSqYVYaHwUdUY9btA0lI2kE/s0u0u/oKYBMGoWnO13c+C/Cg==",
+      "bethany": "data:image/webp;base64,UklGRvgAAABXRUJQVlA4TOsAAAAvH8AHEHXAqW1XQoUCRGADFxigph7N0OMEW39Kwgzty835QUkAoA2SEkgK/AakR7ITZXNmatt4Zf4uhgCCSG608fvPwG3bRnJyO4esV4wXoQkCXJUHRlfkATPZeU53lAh0d8IZTwIFiZxJc/FlmAB/fFwh/mzdJtDpLcGRGRQjX2JmQOzKyCD2TEkHdUnKDMwA4xepTmSjkmwqDhsnaCdQFDt8Cl+AN/7xyZ4bJF1QDVyyB6sX+G+7+E3jEo431ZaWLiHZd6udNMzfLzCP9bNM+VhO+b5/UMCZ4HV9VVW66PM2CDRiv2S/36oGAA==",
+      "bluebaby": "data:image/webp;base64,UklGRpgAAABXRUJQVlA4TIwAAAAvH8AHEHVAiiRbtoIudCADP8gd73B2f3sqTr0OpW0bMIX9/8zCiYm0bVOVMHb2/k9Av9ZvtKzzsEj98D71JKglSrZogZJD9ErJMXqXIP+Q5EoRyRIRvQmSLZICkRViASZ5f6qTRG5aJ8FveJ5HktG+gvgFSwN3rYNbRvtehywZ7Up1AEbtWg+7fNWvNQ==",
+      "cain": "data:image/webp;base64,UklGRqgAAABXRUJQVlA4TJwAAAAvH8AHEJW4iW3bVXCKiGiGHifYii9R/fa+n85uzjw1AQhBRiWk0EH6G984ZAIWiyeAIPof1v8JiGl9IMl2FDYC7vYpbQtoAqcc8K+gAci2wLYFVSAnBbYFdc4KkKtAhoTJ1pgXgD8BFmhppFsNZAALWGoC+uOzOuV17RBVx25fnV37qAsYPdcHRD0MpTQgWgKLJC1AtKUwmqdiWgM=",
+      "eden": "data:image/webp;base64,UklGRsQAAABXRUJQVlA4TLgAAAAvH8AHEJVAbiTJkXOenhGCdIMG8E8n9r1uUY3o331nTlUCjcIoiiTFIYOJVYEH1N8zyjHTtk3hFcCADHGu4Vj6PwHjuj5UinE0BgHflE3JTAMh4Mx0ptMQAE5/th96eubTaegCy9qh7U3ZofTcFAjY4dONzy6QoQYW9JiEEgmOACyQIUTva0EGsGCqZ8D8+n245Mdjwug67pkPVx9z9Q1YszYXjH5YKmnBiARO85J0B0YsjSO8NK5r",
+      "eve": "data:image/webp;base64,UklGRvoAAABXRUJQVlA4TO4AAAAvH8AHEJXAaiRbdvOYGIShGIAp2Fkh+MsM8h8mobXdXTKAc7Od1tU5OmoiSZEmXAGkREjAA+oJnzs5Ztq2MbwBGJDxP5b+T4Dc4E0YxAWbMIQLOGATOpFfvWjsAOwRESzWYgEtEFlIsnUQ5R1Iw6AGIm/JS6ZgYV2M5M1zhQgogWUMDNTdFbO6SA0FdferJQ4djFPw7IKlUAEWEQZcrUR4B0ibkSioQAezZDmAL3ju0zbm659fz/nv7wSQhuPs/PXi7wxAWohZmgFIG6E5DZDqEtzXq6r+ANIIiVApnURy0hFy/cEMRgiMEhglIDca",
+      "isaac": "data:image/webp;base64,UklGRqYAAABXRUJQVlA4TJkAAAAvH8AHEJXAjWTbVUSmBCGTwScT0pJPebj3os7A7qmnJgAhyKiEFDpIf+Mbh0zAYvEEEET/w/o/AXFfL0hxHI2DgL09StsChoBcFQwAuVHQBXKzoM+dXSBDDSzoMScAJf7AIwALZBiiXQ1kAAtSPQF5+Lxc8uuVEF3Lbr5cfeXsC5hZywnRD1MlTYiRwCqXpCcQY2mM4aW4rwEA",
+      "jacob": "data:image/webp;base64,UklGRlQBAABXRUJQVlA4TEcBAAAvH8AHEPXAjW07ktJZjDssYRAEFi4BYK5pEMD4ZEJaVEn/ix3cru8qA8n9lmoy+M7NgiWA9joGmAQA0AZJhauQ/9ir6EAQNOWQSNjWZmraSHIG3gE4IE/6u5y/+u2/ArdtlMKO+V4xfxqcIEBpB8/IPYtP5DjV6SLHYRKXYt6hV/sTArMxElRTgmrSHsNOeE9uY1hW72ex1tqVoOUeJGPWhjVYREVfQKUNwWZDrbH0Khpzambsgh6YEkNsojXYdnKmLwvAUFYZ2oDjQTiwVIDWpAsVlhERTs9IBg1YQQACweRHgBZ/EAL8gUusAHmOWPU2XPQIFW53gCh0rSH6OkwLR0xFvf/MV4nVvSIbpp/9t3648+PVdRev/yBm2X9PE5hnJY2CQ1pL3Xwku4CXPM/AZfu7oIhoAJuKu7sBr/Fvn5Ep7uCr5AwA",
+      "judas": "data:image/webp;base64,UklGRs4AAABXRUJQVlA4TMEAAAAvH8AHEJVAjiTJcQMbYBIcgRFUzvBPT+gIDZF7t9D47kJNUkycokiSmstHsoAKPGAGMRjjGeUYBJhmIvkEEEiQ53r9n4C2l2cB1uP7OpgN5pMFH6vj7+/vel6R4nVlRl5Xg+e217rMDKyEyMHAW5EaIkcGaogcHbSqrKwikiEyqEnvACV/5CqQQSQriadVIiGDHjWN/vJ9yVJeLp1Wtdzplxy89KmuMfWhPtHqmaIUE22VuOsfEXFGW62RbeWldlwDAA==",
+      "keeper": "data:image/webp;base64,UklGRq4AAABXRUJQVlA4TKEAAAAvH8AHELVAjWxbtkJW5AHBkBJ5vuHex2iP2vKsZa+6ato2YHHOwpkCgSR/nkFG6v8E1P/6RU7neXOS+oFPAFGnaLiMTtBwMzqk4XZ0DHKHIU00QCC+IdERVIEmqkyLMilp42lrMlIKeEnQGupb9FhpE+1oaK0JNhCAdkb56rXTSev7s2a4l6d7OaXUvfbaS625Xq5pVWf7gaOuh0qth60fFQA=",
+      "lazarus": "data:image/webp;base64,UklGRrwAAABXRUJQVlA4TK8AAAAvH8AHEJXAjSTJkfP+vRHQXwVzBjo8gVv0yGqv7oBNRmAmTk0jKdCVmEAFHkDGGb6STw5BAIQ8AUJUSpBD/ydgXtcnw+I4GwfhXL0wIQpDqIgiIooBVBQv/lYRxS4q6M9UFPvodZ938BRvtnSyp70CLPmnR6CTbIbko0w2dBK5ZxLPz58LsxQ/P48yc9dNK3569SeOfZMj1uJg7ufIpTyYI3Gby8z8xhxr4xy+NK9rAA==",
+      "lilith": "data:image/webp;base64,UklGRgwBAABXRUJQVlA4TP8AAAAvH8AHEJXAbSRJkrMSdRpxKmnGa8ZnCsVzeu9mNFItdN2TtcDOKIokqekfOXtCEooQqrhtG4fI/ruWu3tV9H8C9G9cImgBuliLk2LdAZ9z/Z680HiZF2gTvNQ9L0u0PA8/YofLfKl7iVDX5Tn8l7ptL5Ftv9S9XfoEL3XHzhOxHZYI9UJsh0FsO9ABH9A76flhO9KcbetizuTItkrmnHRtR5arOFulbeuaQNWqCmB2kUdGxmpk7IE2iBkj4zwONEBs9tG4Ywda7BT7gVPaqdg9lYL9gKQdKtUTU0lxspLCaRHEVJKqqiSFA2qFABRAAQTUDkiclQD1IklIEpKE/owA",
+      "magdalene": "data:image/webp;base64,UklGRjABAABXRUJQVlA4TCMBAAAvH8AHELVIbmTbtZWfiE/MhuBIghCYkwkjcnLvnPPwTLe+wbNXL+yVjrSvmki2ml9+CVkFXe6wgC2EUUY5RgIgYQCVTwxwiCusTvGh9H8C4t26g4DXQjOACGA74GHcpzRidIhN2bawBRxN7Q7CAJtyU7LZXKADshHn7WxL2OLTJ+iBbBthS8iCZcEjti1kq6DEp09gC7agCh6FJMXyacEaEeUiIZ945kxgWUDVAmFEzsEEDERPKuZwIiFolYCEHsyE6gRQTJ4BoMU/mEgjMhNgJuSEDQ/Z5IPVkBNgJtwkNkRHFjePv7/O1vz69QZZvQCJ4103X2f3682KBDFQKtab3s2KVCMBVbBmK1dQjQXti/6ZmZ8ACohhINg2XmUrIiA+mgEA",
+      "samson": "data:image/webp;base64,UklGRgYBAABXRUJQVlA4TPoAAAAvH8AHELXIjSXJkZ3vxamf2vFNgRHUGejwBG6xm539EqB2L+ixiSchOuKYkthWJSRytaSgwFN0oPOXaxyFbCRBg7cAC3LmH8Bt/ycgvidvmPUIvIy58/Ak9xxdVbIqYQ5ZVZWZ1Uz6yGpDVVXSQ2Zq3g6bzcZkF1Zgsx4RsWlG1wpsNptoQrQ7WIGI0PxQGTp71qvS+JQ5HmVVkR3kGo5N7WSqOPpMdPznSM3CcTCOvMh4v4pxhONgGeRUkCwfvzbH1nGzWci+4tX2sjlObpYrRfQk12VquVI5J7mO1riS2RWkxOv+Mcb4g0x9AakzJaIvzI/ZxCQhfhgB",
+      "t_apollyon": "data:image/webp;base64,UklGRqwAAABXRUJQVlA4TKAAAAAvH8AHEAXTAGzbiIb1tjyjl/KmV6SiUDJpm5xVPZfzo6BtGxa6u/OvwG0bJe0xwyuAVwiJ/L8PZB932YBOpOQpOuRhimyIqr4PEjm6krVPSYW1+f2n1mZZN44wBzUbPTOszTHg0AhkC7OWzD6Kw6BC65E6tMi4+ruQBVl9vQLQh7X+s4tkkxx9i818d8siOBbBcVWmNpEzuF/LD7d/+VQB",
+      "t_azazel": "data:image/webp;base64,UklGRp4AAABXRUJQVlA4TJIAAAAvH8AHENVAkSRJcqQviIqL6v+/O9tUtUi08hVDw5Iv05WMTNomZyXOytxH/ydgnuZddyx7gOHBAQrUD4O/2ahMCZiWPeBIfa8XoJNkawCyu1+gJLEDVOIzo9z7306H7QgUu0WyFYDIlioDSeJFtgSm9FISO3E2vWoDL60SvWDq8FKWesF0Ai9JegHTy4PTvprnGg==",
+      "t_bethany": "data:image/webp;base64,UklGRhIBAABXRUJQVlA4TAYBAAAvH8AHEJVIjiRJspV/+uwIwJEjKiAW6jx5UGvrnscO17J87/32MWq+KYokqQ3f80zkYICMATSApm0jGeLxB3Hjbf/p/wTUn/EO8W04w/Q80w3etktwDpIwK/J+bzdbdHeoOenuODvdHba6O96NEdwBYpfu3iDdsSMQ7NIdZt0NafadDnT3hM4kvdWZpBliSBLTJBlkKGb48P5wwYwaSRsvl1NvrXW5GDvUVvAJsD5Sx3Es/4dskQmOxTpMk1BVZNixDjgW9iEUScLuzXc7ZsftZidJKCbx4rodm7dHmVBV5vG49SjmNaJ4Xc+9OvVm6165UqhzjZdTb611Mda3K2eW+s6z+rcG",
+      "t_bluebaby": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4TLEAAAAvH8AHEBa4jSQ5ks6uwxnxzIx35C1689iSHu1UJtaTTAxaNxOAzCuOFCJ4NfFLtHgzEICIQx5Y4IolHGpe/Z+Ay3l9AFbHsXMQ8KK8emqAIZAYl4EBEI1ZGChBjMb1QE1DVEO0BCFEH6q2QwiUQlzREAcQaEAhVCBRG97v3lZQTaDgovn4506rjrFZjrhAFp7C7h+XgUuBqMmR/knUULmwnHP+/PzMyfJSXey/DN26nNUA",
+      "t_cain": "data:image/webp;base64,UklGRq4AAABXRUJQVlA4TKIAAAAvH8AHEJW4jSRJUrAD5zDidQYdT3Dr3Q/p1LnYm+hSOlATAAnDSQlS0MEMhvacccgELBZPAEH0P6z/ExDLekeK42gcBNzsQ9oWMASOccC294lgAMi2IO0UdIFcFGSmoM9VAZldIEPBVHvME8CPAAs0B+laAxnACWRPwHr/bC45MyG6Dt11czVz9gX810pqQvTDXyVNiJHAlKQJxFgaY3gpljU=",
+      "t_eden": "data:image/webp;base64,UklGRuAAAABXRUJQVlA4TNQAAAAvH8AHEJXAbW3tbaNNNYQc1vAA7r0Ea67l8AfSldrH+F3gwwMVtW0kjXSTKIrhMOjneezCMdO2TeEVwIAMca7hWPo/AXqmbxGQgH9pzkDxTRmYhEzXmIAkZ6YznZbEBIP0mX7whfPIwymB+8KgEdoxMCMcmBFGCAbm6Bthw4dLweE+HFBQAGH6ElcoSDATKAgDYZjjvTcAHIADiGXC1+8CAnsHexcse99ynwHZ9m7XrqXvAlWWYpHg6gNV4rIdlySYIEkRj3qI2ECSJlTpLOYEJEDPNQ==",
+      "t_eve": "data:image/webp;base64,UklGRsoAAABXRUJQVlA4TL4AAAAvH8AHEJVAbiTJkXOenBFnxBlEaQztoVtqxO5SvRug2ASRhyITwcz+6GwCSKEDAUHR/9H0fwLqi3mQdj0m16E9AqW7jFY8ISLAElBMVxNhDkyMvSRZlhaTSBIDM2ASO4gJi5KoqI3BDQBdAPZErt732cOyJCrC9/fZ8wTgCGEAJg542PeZdgHY6T72f3CuwLlLstqlH1dhRoE12Hu7UEAtAb73fd+/gaqaKuiNa3GvqlcrjjaErQrcqGCroj5o",
+      "t_isaac": "data:image/webp;base64,UklGRr4AAABXRUJQVlA4TLIAAAAvH8AHEJXAjSTJkfN2vC9vC6gH1Bno8ARu0WXaq7tgXSAVpygACMdThS2EDjII7elGHDMBkywNLzUIYBD6H9L/CZjH9Q4pjqNxEHCfe7SpAYZANL4NDIBoLAe6IBpTMtCnGutdEMEqGOiRJwBK/IEjAAMRhuRuChFADqTL8ErPhLvpw8+npcCC2XWytz5V982Xfq6tb8K23vila4PZD1tK2WCOBK7qk3x9AHMsjXN4aR7X",
+      "t_jacob": "data:image/webp;base64,UklGRgABAABXRUJQVlA4TPMAAAAvH8AHEBa4kSQ5ct6wNwIewACI1JnX4QncosfA1dF3hFL6Rpi+CLMAmLzzGcJAZlI8IUQxiEAyC4DJhGYwiKnEM4wYYukMof5PQPwtTwDwGSyMYBUBcFW6Gbc+TC4DOJvq7pa6BVoBQt3KlrJbUhIrUt0tSYmUrYRFAepOKYFUd2sFpCRS3G5dkgNSyoQFQEscJLaNkmxgBiAT2yTPN4XAaEkEJK5y8QFXAQRL8PHyDzWJOS7Jh4VAAZTBBVDr/KgFF0AZhlcEMJ76VFMlDSCWwzV7qGY1doi1sI+5sUOsh91T3iG2BA7bPoDYloWx+VT8rwEA",
+      "t_judas": "data:image/webp;base64,UklGRm4AAABXRUJQVlA4TGIAAAAvH8AHELW4bSPJkS6Gyz9XtWJm75U7IZT15QoJEqLvvRz9n4D6yFuwhnYF/TyWMJ1BMIF23zxCRFhF126vngWggAIKEPKgPf+aYtNqDspQCRWJ9bCKVTxSmXOVO1PpvfqtAQ==",
+      "t_keeper": "data:image/webp;base64,UklGRsQAAABXRUJQVlA4TLgAAAAvH8AHEHVAjiRJkoJW6NEIAxJho+fVPZzfyomYHkVt28AxPwdjY3AqaCMpqn8t9wJCkNT/Caj/9UvYHOfBQeo7C4aoQzSANhaIDtCwCkC0S8M6roj2QaDhFl2aaCBCNNEe/Kj4zBYI8bplxH0JUbyvEYnGzYYmPaUL4C5Bq6txiEZfKQvRRjQLDa0BsgABaDiifO2vhAR9+2eN8JluPtMhpT7zmc9Ua6y7c1jV1nPCWudJpdbJ1o8K",
+      "t_lazarus": "data:image/webp;base64,UklGRtIAAABXRUJQVlA4TMUAAAAvH8AHEJXAjSRJtoJ/GIH+VS5n0PEEt6537NNQZ7gmI5iNp6aRFOhKTKACDyDjDF/JJ4cgAEKeACEqJcih/xMQn8orAxFwjMED4Lp6YZruhiE6ly2XzRidmdmLNoTObNm6M7Oxi85sNE1nZrODzGxP8VqoojObPRpe/NScc1qPnSivAHPVP0XsZsIsasIcq0eZmjCLrJEgn58/F2Ytf34eZWLoppU/c/Mnz7HgzK08iXHOWquTOBK3uaqqb8Sxdsbha/G5BgA=",
+      "t_lilith": "data:image/webp;base64,UklGRgABAABXRUJQVlA4TPQAAAAvH8AHEBK4kSRZVk56OkagghkYgi84vnd7TwJ1ot+veoKOVRLJCmWffSGeRRKBAkT5daECKc0ETLKTlxCc2MEUJrF//yeg/owbgBngFGNBAcV4Ar7rfu6byX42zBV85T6bbTHY9PMGNQ/0p/fyGp0k/32G8eaBJL4BzICzb95ocJIYJgqcGIf1rvTCiaGmAQOmu3uxBeYEyAJYAyAL5hwEq2EQ8TXEhw3AC50rCKA9AYGaZZBehxIxHAEkrJlFYuAoicXSnhZykhnZsmB1dy+QZeuoQEK22JUtJKhjRtmWJNtirFkoAAEIoKCuyGFdn6oq6ncJ",
+      "t_magdalene": "data:image/webp;base64,UklGRvoAAABXRUJQVlA4TO4AAAAvH8AHEJVAjiTJtfI95fuAOuMHd2zAAdySK9Bcd7/oqeiJjacmAAjG6dLAtQroIL1zxjETgIx4AgginWsdNJr+T8D4WXcI+BSKH8UYwJ3cI0XAh/Beti2APt7LRQnoAdmIvde2hLpAto2wJWRBj20L2UpIJQwaqJEJ97En3goljFYQ6SQg1vtQGyRGxGoMQZOQktXsFlAmEFCDEFQGQLJ4BkCJhNtyywCZBbACYgGsDpuYEAtgBczokMV8eJ5WaZ1OE0YrSFy05mlVT3Pr2nuVbLM2NxjtkAlblGKD0Uv5Mj8i4giMfmDQOD68NP7X",
+      "t_samson": "data:image/webp;base64,UklGRtIAAABXRUJQVlA4TMUAAAAvH8AHELVAbiTJkXPOnB1nyhlxFM7wT0/oluzdnhf57Rpq1cgX0cAqJQGAIESiVlbwgfVEnWMgABHzDDDEc9WA9H8C4mm+Q9AMg8dtGNzTATRgWAcLJXABUqkkqQQxngCVSlVVEhBeUMmuknzYV9HMxG5QJfLGO02oqlzYk4ntKW4BI/6hfBPAlJATwOTLyzLkBDAl9PQE9Ovn12RNX18dwnVs9a9p8KtvvoCtD/UNwg9bWrlBtARO+ZmZ70C0ZWQ0t+J5DQA=",
+      "t_theforgotten": "data:image/webp;base64,UklGRoAAAABXRUJQVlA4THMAAAAvH8AHELXAiWxbtoJGzGAJn2+4j5nwRis8a0kYhOj/BOy/9cvT57r5UPXmnRx6pFCpXlEP1KDUKFNLhUdClVqzUolqreio2pFa8QTgxM8HFapUsLLL48B4rL00Ciigs7ar0YNOtderIYip/Ww399NX+18RAA==",
+      "t_thelost": "data:image/webp;base64,UklGRrgAAABXRUJQVlA4TKsAAAAvH8AHEJVAjiS7bqMYmYDCUEhiIMrrY0N6uOkK1MOrnao9QE3bRpDH8sd14wuHMNs4VbwBHMj1fwLGb32JZj++7AQ8OZH8AOgCN2TbJSV0gFRZkm0XhCBtl+UqSQkxlUtyqRkCGyzLlkAJkUJg/UegmACUkIIuB7c65AmAEuZBZMC8f+ukpbUmjNC1N5c+rrljA/b8NDeMOOxs5YbREzjIzBQw+vLl6N4avzUA",
+      "theforgotten": "data:image/webp;base64,UklGRngAAABXRUJQVlA4TGwAAAAvH8AHELW4iWRbVtCIGSzh863shC+a8J6RMAjR/wk4v/Vld5+Tm9SbuySoW5QM0Q16NVO6pGQa3aDSoK4pto0tupIOQCfPBypJggorR9MWVFo9S5UACZDU2lEraZJSz7paCFJ69jp5do/OXxE=",
+      "thelost": "data:image/webp;base64,UklGRqAAAABXRUJQVlA4TJQAAAAvH8AHEJVAiiTJkbRMF8ZhWCQH4eDJFvPbb7fZCS/LR6tp2wjKWP64Oj53cAizjVPFG8CBXP8nYD3XN2leZ/AivOEdSQqXUOkWF1AZLKaoDBdzmZyiQo8UMxFaQq5AigqXPPDiU4EU+8ws9uv3k1Z+fjZr6p7tn3R/9plbnN3bhzXPqVYd1pV4oKrqYF1rcF3eWs81",
+    };
+    const characters = [
+      {"code": "ISAC", "en": "Isaac", "cn": "以撒", "pattern": "MMLMM MLMML MLMMM", "quote_cn": "我只是个孩子，为什么要承受这些……", "quote_en": "I'm just a kid, why do I have to endure this...", "desc_cn": "均衡型角色，基础 3 红心。携带炸弹和 The Dice（可重 roll 道具），是最标准的初始角色。", "desc_en": "Balanced character with 3 red hearts. Carries bombs and The Dice. The most standard starting character.", "char_desc_cn": "万金油型人格。没有极端特点，代表最普通的人面对困境时的真实反应。既不特别勇敢也不特别怯懦，既不贪婪也不吝啬。他是所有人的起点，也是大多数人的真实写照——在混乱中寻找方向。", "char_desc_en": "Jack-of-all-trades personality. No extreme traits — represents the most genuine human reaction to adversity. Neither especially brave nor especially cowardly. He is everyone's starting point and most people's true reflection — finding direction in chaos.", "img": "isaac"},
+      {"code": "MAGD", "en": "Magdalene", "cn": "抹大拉", "pattern": "LHMHL HHLLM MHLHL", "quote_cn": "来，让我治愈你的伤痛。", "quote_en": "Come, let me heal your wounds.", "desc_cn": "高血量（4 红心），携带 Yum Heart（回复 1 红心）。移速较慢，适合肉盾型打法。", "desc_en": "High HP (4 red hearts), carries Yum Heart (heals 1 red heart). Slow speed, tank-style play.", "char_desc_cn": "温暖的守护者。总是冲在前面为别人挡刀，哪怕自己也在流血。过度的善良有时是一种负担，但她从不后悔。她相信爱能治愈一切，哪怕这个世界充满了恶意。", "char_desc_en": "A warm guardian. Always charges ahead to shield others, even while bleeding herself. Excessive kindness can be a burden, but she never regrets it. She believes love can heal everything, even in a world full of malice.", "img": "magdalene"},
+      {"code": "CAIN", "en": "Cain", "cn": "该隐", "pattern": "LLLMH HMLHM HHMML", "quote_cn": "运气？不，这叫实力。", "quote_en": "Luck? No, this is skill.", "desc_cn": "高幸运值，携带 Lucky Foot。攻击力尚可但血量较少。赌博和献血时运气更好。", "desc_en": "High luck, carries Lucky Foot. Decent attack but low HP. Better luck gambling and donating blood.", "char_desc_cn": "赌徒与冒险家，天生幸运儿。他相信每一次门后都有宝藏，每一个骰子都该掷出 6。高风险高回报是他的信条，输了？再来一把。运气不是天上掉的，是他自己争取的。", "char_desc_en": "Gambler and adventurer, born lucky. He believes every door hides treasure and every die should roll 6. High risk, high reward is his creed. Lost? Deal again. Luck isn't given — he earns it.", "img": "cain"},
+      {"code": "JUDA", "en": "Judas", "cn": "犹大", "pattern": "HMLLM LMLHM LHLLH", "quote_cn": "背叛是通向力量最短的捷径。", "quote_en": "Betrayal is the shortest path to power.", "desc_cn": "1 红心开局，携带 The Book of Belial。高攻击低血量的玻璃大炮。恶魔房概率加成。", "desc_en": "Starts with 1 red heart, carries The Book of Belial. Glass cannon with high attack, low HP. Devil room chance bonus.", "char_desc_cn": "深谋远虑的暗影行者。不介意用黑暗的手段达成目的，因为光明从来不是免费的。高攻击力的代价是脆弱的身躯，但他相信：最好的防御就是进攻。他是所有叛徒中最忠诚的那个。", "char_desc_en": "A calculating shadow walker. Doesn't mind using dark means to achieve goals, because light is never free. High attack power at the cost of fragility — he believes the best defense is offense. The most loyal among all traitors.", "img": "judas"},
+      {"code": "EVE", "en": "Eve", "cn": "夏娃", "pattern": "HLLHL LHMLH LHLLL", "quote_cn": "绝境？那是我的主场。", "quote_en": "Desperation? That's my arena.", "desc_cn": "携带 Whore of Babylon（低血量时大幅提升攻击力）和 Dead Bird。低血量时才是完全体。", "desc_en": "Carries Whore of Babylon (massive attack boost at low HP) and Dead Bird. Full power at low HP.", "char_desc_cn": "绝境求生者。血量越低越强大，濒死状态才是她的完全体。她习惯了在刀尖上跳舞，因为安逸让她窒息。自残是一种策略，也是一种生活态度——痛苦让她清醒。", "char_desc_en": "Desperation survivor. Lower HP means greater power — near-death is her true form. She's used to dancing on the edge because comfort suffocates her. Self-harm is strategy and lifestyle — pain keeps her lucid.", "img": "eve"},
+      {"code": "BLNK", "en": "???", "cn": "???", "pattern": "MLMML MLMML MLMML", "quote_cn": "……", "quote_en": "...", "desc_cn": "全程只有灵魂之魂（Soul Hearts），没有红心。不能使用红心回复。携带 The Poop。", "desc_en": "Only Soul Hearts, no red hearts. Cannot use red heart healing. Carries The Poop.", "char_desc_cn": "沉默的混沌体。无法用言语描述，无法用常理揣度。他以灵魂为血量，用便便作为武器，活在一个所有人都不理解他的世界里。但也许，不被理解本身就是一种自由。", "char_desc_en": "A silent chaos entity. Defies description and logic. Uses souls as HP and poop as weapon, living in a world nobody understands. But perhaps being misunderstood is itself a form of freedom.", "img": "bluebaby"},
+      {"code": "SAME", "en": "Samson", "cn": "参孙", "pattern": "LLHLL HMLHL LHHLL", "quote_cn": "以血换力，绝不后悔。", "quote_en": "Blood for power, no regrets.", "desc_cn": "携带 Bloody Lust（每次受伤临时提升攻击力，最多叠加 6 次）。被打得越狠，输出越高。", "desc_en": "Carries Bloody Lust (attack boost on hit, stacks up to 6x). More damage taken = more damage dealt.", "char_desc_cn": "狂暴战士，用生命换取力量。他不懂什么叫退缩，不知道什么叫克制。被打得越惨，反击越狠。暴力是他唯一的语言，但他用得很好。", "char_desc_en": "Berserker warrior who trades life for power. He doesn't know retreat or restraint. The harder he's hit, the harder he strikes back. Violence is his only language, and he speaks it fluently.", "img": "samson"},
+      {"code": "AZAZ", "en": "Azazel", "cn": "阿萨泻勒", "pattern": "LLLHL LMMLH LHHLM", "quote_cn": "翅膀比光环好用多了。", "quote_en": "Wings are way more useful than halos.", "desc_cn": "拥有飞行能力和短程 Brimstone 激光。射程短但伤害极高，前期最强角色之一。初始 3 黑心。", "desc_en": "Flight ability and short-range Brimstone laser. Short range but extreme damage. One of the strongest early-game characters. Starts with 3 black hearts.", "char_desc_cn": "堕天使的骄傲。拥有飞行能力和强力射线，是天生的破坏者。自负是他的保护色，短程是他唯一的软肋。他不后悔堕落，因为天堂太无聊了。", "char_desc_en": "The pride of fallen angels. Flight and powerful beams make him a natural destroyer. Arrogance is his armor, short range his only weakness. He doesn't regret falling — heaven was too boring.", "img": "azazel"},
+      {"code": "LAZA", "en": "Lazarus", "cn": "拉撒路", "pattern": "LLMHL HHHML MLMHL", "quote_cn": "死过一次的人，不怕再死。", "quote_en": "Someone who's died once isn't afraid to die again.", "desc_cn": "携带 Anemic。死亡后自动复活为 Lazarus Risen（攻击力大幅提升）。唯一自带复活的角色。", "desc_en": "Carries Anemic. Auto-revives as Lazarus Risen (massive attack boost) on death. Only character with built-in revival.", "char_desc_cn": "复活者。死亡对他来说不是终点，而是新的开始。这种近乎鲁莽的乐观让他敢于做别人不敢做的事。反正能复活，怕什么？每一次死亡都是一次升级。", "char_desc_en": "The Risen. Death isn't an ending but a new beginning. His reckless optimism lets him dare what others won't. He can revive anyway — what's to fear? Every death is an upgrade.", "img": "lazarus"},
+      {"code": "EDEN", "en": "Eden", "cn": "伊甸", "pattern": "MLMHM MLMHM MLMHM", "quote_cn": "下一秒会发生什么，谁也说不准。", "quote_en": "What happens next, nobody can say.", "desc_cn": "每局随机初始道具、属性和外观。使用 Eden Token 进入。完全的随机性角色。", "desc_en": "Random starting items, stats, and appearance each run. Requires Eden Token to enter. Fully random character.", "char_desc_cn": "混沌的化身。每次开局都是全新的随机状态，他从不抱怨命运的不公，因为公平从来不存在。适应力是他最强的武器，随机性是他最好的朋友。", "char_desc_en": "The embodiment of chaos. Every run starts with random state — he never complains about unfairness because fairness never existed. Adaptability is his greatest weapon, randomness his best friend.", "img": "eden"},
+      {"code": "LOST", "en": "The Lost", "cn": "游魂", "pattern": "HHMHH LLLHL HLMHH", "quote_cn": "碰一下就碎，所以绝不能被碰到。", "quote_en": "One touch and I shatter, so I must never be touched.", "desc_cn": "无法拥有任何血量，一碰即死。但可以免费进入恶魔房，且能飞行。极致的玻璃大炮。", "desc_en": "Cannot hold any HP — one hit kills. Free devil room access and flight. Ultimate glass cannon.", "char_desc_cn": "极致的玻璃大炮。一击必死的诅咒让他成为最纯粹的高手试金石。他代表了那些在极限中寻找完美的人——不允许犯错，也不需要犯错。脆弱是他的诅咒，也是他的勋章。", "char_desc_en": "The ultimate glass cannon. One-hit-death makes him the purest test of skill. He represents those who seek perfection in the margins — no errors allowed, none needed. Fragility is his curse and his badge of honor.", "img": "thelost"},
+      {"code": "LILT", "en": "Lilith", "cn": "莉莉丝", "pattern": "HLMHL LHHLM HLMLH", "quote_cn": "黑暗中，我从不孤单。", "quote_en": "In the darkness, I'm never alone.", "desc_cn": "携带 Incubus（跟随射击的恶魔宝宝）和 Cambion Conception。自身射程短，靠召唤物输出。", "desc_en": "Carries Incubus (follower demon baby) and Cambion Conception. Short personal range, relies on summons for damage.", "char_desc_cn": "召唤者与母亲。她不亲自战斗，而是让她的孩子们替她冲锋。这种间接的战斗方式反映了一种深层的依赖与被依赖——她需要被需要，她的孩子们也需要她。", "char_desc_en": "Summoner and mother. She doesn't fight personally — her children charge for her. This indirect combat reflects deep dependency — she needs to be needed, and her children need her too.", "img": "lilith"},
+      {"code": "KEEP", "en": "Keeper", "cn": "店主", "pattern": "LHHLH MLMLH HHHLL", "quote_cn": "一分钱掰两半花。", "quote_en": "A penny saved is a penny earned.", "desc_cn": "使用金币作为血量（最多 2 金币容器），不能持有灵魂心。拾取金币可回血。商店折扣。", "desc_en": "Uses coins as HP (max 2 coin containers). Cannot hold soul hearts. Picking up coins heals. Shop discount.", "char_desc_cn": "极端节俭者。金币就是血量，血量就是金币，他活在一个经济与生命直接挂钩的世界里。每一分钱都要精打细算，因为他输不起。别人眼中的吝啬，在他看来是生存智慧。", "char_desc_en": "Extreme frugalist. Coins are HP, HP is coins — he lives where economy and life are directly linked. Every cent must be carefully calculated because he can't afford to lose. What others call stingy, he calls survival wisdom.", "img": "keeper"},
+      {"code": "APLL", "en": "Apollyon", "cn": "亚坡仑", "pattern": "MMLML MMLMM HHMLL", "quote_cn": "吞噬一切，化为己用。", "quote_en": "Devour everything, make it your own.", "desc_cn": "携带 Void（可吞噬其他道具获得属性加成或能力）。代表虚无与吞噬。", "desc_en": "Carries Void (devours items for stat bonuses or abilities). Represents void and consumption.", "char_desc_cn": "虚空的使者。他能把任何道具转化为力量，代表了一种「万物皆可为我所用」的实用主义。他不挑剔，不感性，只要能变强，什么都可以牺牲。沉默寡言，但实力深不可测。", "char_desc_en": "Emissary of the void. Can convert any item into power — pragmatic to the core. Not picky, not sentimental — anything can be sacrificed for strength. Quiet but unfathomably powerful.", "img": "apollyon"},
+      {"code": "BETH", "en": "Bethany", "cn": "伯大尼", "pattern": "HHHML HHLLM MLMHH", "quote_cn": "信仰是我最强的武器。", "quote_en": "Faith is my strongest weapon.", "desc_cn": "使用魂心充能主动道具。可携带 Book of Virtues（生成火焰跟班）。拉撒路的姐妹。", "desc_en": "Uses soul hearts to charge active items. Can carry Book of Virtues (generates flame wisps). Lazarus's sister.", "char_desc_cn": "虔诚的火焰使者。她用魂心充能，用书本召唤火焰，代表了信仰的力量。她相信善有善报，相信坚持就是胜利，哪怕世界充满了恶意。火焰是她的祈祷，也是她的武器。", "char_desc_en": "Devout flame bearer. Charges with soul hearts, summons flames from books — the power of faith incarnate. She believes good is rewarded and persistence wins, even in a world of malice. Flames are her prayer and her weapon.", "img": "bethany"},
+      {"code": "JCOB", "en": "Jacob and Esau", "cn": "雅各和以扫", "pattern": "MHMHH HMLMH LMHMH", "quote_cn": "兄弟齐心，其利断金。", "quote_en": "Brothers united, unstoppable.", "desc_cn": "同时操控两个角色。雅各灵活但血低，以扫血高但笨重。可分别持有道具，兄弟间可交换。", "desc_en": "Control two characters simultaneously. Jacob is agile but fragile, Esau is tanky but slow. Each can hold different items, can swap between brothers.", "char_desc_cn": "双生羁绊。两人共享一个屏幕，需要同时操控。代表了合作与牺牲的永恒主题——有时一个人必须为另一个人挡子弹。他们争吵、妥协、互相扶持，就像所有真实的兄弟一样。", "char_desc_en": "Twin bond. Two characters sharing one screen, controlled simultaneously. Represents the eternal themes of cooperation and sacrifice — sometimes one must take a bullet for the other. They argue, compromise, and support each other like real brothers.", "img": "jacob"},
+      {"code": "FORT", "en": "The Forgotten", "cn": "遗骸", "pattern": "LMHLL HLLMH HHMML", "quote_cn": "骨头是我最后的盔甲，也是我唯一的武器。", "quote_en": "Bones are my last armor and my only weapon.", "desc_cn": "使用骨头近战武器（可蓄力投掷）。只有骨心。有副角色「灵魂」可切换飞行射击。", "desc_en": "Uses bone melee weapon (chargeable throw). Only bone hearts. Sub-character The Soul can switch to flight and shooting.", "char_desc_cn": "死而未腐的战士。他只剩一副骨架，却比大多数活人都顽强。骨头是他的盔甲，灵魂是他最后的火种。他代表了那些被命运碾碎后依然站立的人——你可以夺走我的血肉，但夺不走我的意志。", "char_desc_en": "Undead warrior. Only a skeleton remains, yet more tenacious than most living beings. Bones are his armor, soul his last spark. He represents those still standing after being crushed by fate — you can take my flesh, but not my will.", "img": "theforgotten"},
+      {"code": "T_IS", "en": "Tainted Isaac", "cn": "堕化以撒", "pattern": "MHMHL MMLMH MLMHM", "quote_cn": "选择太多，也是一种诅咒。", "quote_en": "Too many choices is also a curse.", "desc_cn": "道具栏上限扩展为 12 格，但每获得新道具时必须选择丢弃一个。", "desc_en": "Inventory expanded to 12 slots, but must discard one item when gaining a new one.", "char_desc_cn": "选择困难症的极致体现。他能携带更多道具，但必须不断做出取舍。这代表了现代人面对过多选择时的焦虑——拥有一切，却无法拥有一切。每一个选择都是一次失去。", "char_desc_en": "The ultimate choice anxiety. Can carry more items but must constantly make trade-offs. Represents modern anxiety about too many choices — having everything yet unable to have everything. Every choice is a loss.", "img": "t_isaac"},
+      {"code": "T_MG", "en": "Tainted Magdalene", "cn": "堕化抹大拉", "pattern": "LHHLL LHHLH LHLLL", "quote_cn": "治愈？不，这次我选择撕碎一切。", "quote_en": "Healing? No, this time I choose to tear everything apart.", "desc_cn": "红心会缓慢流失，但拥有强大的近战咬击。击杀敌人有概率掉落红心。", "desc_en": "Red hearts slowly drain, but has powerful melee bite attack. Kills have a chance to drop red hearts.", "char_desc_cn": "温柔的另一面是暴虐。堕化抹大拉放弃了治愈能力，换取了近战撕咬。代表了那些长期压抑自我的人终于爆发的状态——不再当老好人了。", "char_desc_en": "The violent side of gentleness. Tainted Magdalene traded healing for melee biting. Represents those who've suppressed themselves too long finally erupting — no more being the nice one.", "img": "t_magdalene"},
+      {"code": "T_CA", "en": "Tainted Cain", "cn": "堕化该隐", "pattern": "LLLMH LMLHH MHHLM", "quote_cn": "万物皆可拆解，万物皆可重组。", "quote_en": "Everything can be dismantled, everything can be reassembled.", "desc_cn": "携带 Bag of Crafting。不能正常拾取道具，所有道具自动分解为材料，可合成新道具。", "desc_en": "Carries Bag of Crafting. Cannot pick up items normally — all items auto-dismantle into materials for crafting new items.", "char_desc_cn": "工匠与破坏者。他不靠运气，靠双手。任何道具都能被拆解为材料，再合成新的东西。这是极端的实用主义——没有什么是神圣的，一切都可以被改造。", "char_desc_en": "Artisan and destroyer. Doesn't rely on luck — relies on hands. Any item can be dismantled and reassembled. Extreme pragmatism — nothing is sacred, everything can be remade.", "img": "t_cain"},
+      {"code": "T_JU", "en": "Tainted Judas", "cn": "堕化犹大", "pattern": "HMMLL LMHHL LHLHH", "quote_cn": "黑暗不再是我的选择，而是我的本质。", "quote_en": "Darkness is no longer my choice — it's my essence.", "desc_cn": "携带 Dark Arts（短暂暗影状态，穿墙且接触敌人造成伤害）。无法获得红心，只有黑心。", "desc_en": "Carries Dark Arts (brief shadow state, phase through walls, contact damage). Cannot gain red hearts, only black hearts.", "char_desc_cn": "与黑暗彻底合一。他不再使用黑暗力量，他本身就是黑暗。Dark Arts 让他穿墙、无敌、造成范围伤害——他就是阴影中的死神。背叛不再是手段，而是本能。", "char_desc_en": "Completely merged with darkness. No longer uses dark power — he IS darkness. Dark Arts lets him phase through walls, become invincible, deal AoE damage — he's the reaper of shadows. Betrayal is no longer strategy, it's instinct.", "img": "t_judas"},
+      {"code": "T_BL", "en": "Tainted ???", "cn": "堕化???", "pattern": "MLMLL LHMHL HMLLM", "quote_cn": "💩", "quote_en": "💩", "desc_cn": "用便便代替炸弹。不同类型的便便有不同效果。携带 Hold（可存储便便下次使用）。", "desc_en": "Uses poop instead of bombs. Different poop types have different effects. Carries Hold (store poop for later use).", "char_desc_cn": "把最被人看不起的东西变成了最强的武器。他不追求高雅，不在乎世俗眼光，用最原始的方式解决问题。有时候，最低级的手段反而最有效。", "char_desc_en": "Turned the most despised thing into the strongest weapon. Doesn't pursue refinement or care about judgment — solves problems in the most primal way. Sometimes the crudest methods are the most effective.", "img": "t_bluebaby"},
+      {"code": "T_EV", "en": "Tainted Eve", "cn": "堕化夏娃", "pattern": "HLHML LHHLL LHMLL", "quote_cn": "我的血，就是我的军队。", "quote_en": "My blood is my army.", "desc_cn": "携带 Sumptorium（消耗红心生成血块跟班）。停止射击时自动将红心转化为血块。血块越多火力越强。", "desc_en": "Carries Sumptorium (consumes red hearts to generate blood clot followers). Auto-converts hearts when not shooting. More clots = more firepower.", "char_desc_cn": "从绝境战士变为鲜血女王。她用自己的血液召唤军队，每一滴血都是一个忠诚的士兵。她代表了那些为了力量不惜一切代价的人——生命？那只是弹药而已。", "char_desc_en": "From desperation warrior to blood queen. Summons armies from her own blood — every drop a loyal soldier. Represents those who sacrifice everything for power — life? That's just ammunition.", "img": "t_eve"},
+      {"code": "T_SM", "en": "Tainted Samson", "cn": "堕化参孙", "pattern": "LLHLL HHLHL LHHLL", "quote_cn": "愤怒不是情绪，是一种生存状态。", "quote_en": "Rage isn't an emotion — it's a state of survival.", "desc_cn": "携带 Berserk!（进入狂暴状态：大幅加速、伤害翻倍、只能近战）。狂暴中击杀延长持续时间。", "desc_en": "Carries Berserk! (massive speed boost, double damage, melee only). Kills in berserk extend duration.", "char_desc_cn": "狂暴的极致。从被动挨打触发变为自主选择爆发。Berserk 状态下的他是不可阻挡的杀戮机器，但狂暴结束后会陷入短暂虚弱。要么不做，做就做绝。", "char_desc_en": "Berserker perfected. From passive taking hits to active eruption. In Berserk state he's an unstoppable killing machine, but falls into brief weakness after. Either don't do it, or go all the way.", "img": "t_samson"},
+      {"code": "T_AZ", "en": "Tainted Azazel", "cn": "堕化阿萨泻勒", "pattern": "LLMHM LMMHL LMLHM", "quote_cn": "一口血痰，足以毁灭世界。", "quote_en": "One bloody spit can destroy the world.", "desc_cn": "Brimstone 变为巨大扇形喷射（更宽但更短）。蓄力后释放更强力的喷射。", "desc_en": "Brimstone becomes a huge fan-shaped blast (wider but shorter). Charge for a stronger blast.", "char_desc_cn": "从精准的暗杀者变为狂暴的轰炸机。他不再追求精准，而是用压倒性的火力覆盖一切。管你准不准，炸就完了。", "char_desc_en": "From precise assassin to raging bomber. No longer seeks precision — overwhelms everything with firepower. Who cares about accuracy? Just blast it.", "img": "t_azazel"},
+      {"code": "T_LZ", "en": "Tainted Lazarus", "cn": "堕化拉撒路", "pattern": "MLMHM HLHML HMHML", "quote_cn": "我是谁？取决于现在是哪一个我。", "quote_en": "Who am I? Depends on which me is active.", "desc_cn": "携带 Flip，可在「活」和「死」两个状态间切换。每个状态有不同道具栏。进入新房间自动切换。", "desc_en": "Carries Flip — switch between alive and dead states. Each state has different item slots. Auto-switches on entering new rooms.", "char_desc_cn": "双面人。他不断在两个状态间切换，代表了身份认同的困惑和人格的多面性。活与死，不过一念之间。", "char_desc_en": "Two-faced. Constantly switching between states — represents identity confusion and multi-faceted personality. Life and death, separated by a single thought.", "img": "t_lazarus"},
+      {"code": "T_ED", "en": "Tainted Eden", "cn": "堕化伊甸", "pattern": "MLMHM MLMHM MLMHM", "quote_cn": "混沌才是宇宙的常态。", "quote_en": "Chaos is the norm of the universe.", "desc_cn": "每次受伤都会随机重 roll 所有道具和属性。唯一不变的就是变化本身。", "desc_en": "Every hit randomly rerolls all items and stats. The only constant is change itself.", "char_desc_cn": "混沌的极致。每次受伤道具都会随机变化，代表了对确定性的彻底放弃。适应力不是选项，是生存的唯一方式。", "char_desc_en": "Chaos perfected. Items reroll on every hit — total abandonment of certainty. Adaptability isn't an option, it's the only way to survive.", "img": "t_eden"},
+      {"code": "T_LS", "en": "Tainted The Lost", "cn": "堕化游魂", "pattern": "HHMHH LMLHL HLMHH", "quote_cn": "死神来了，也得排队等。", "quote_en": "Even death has to wait in line.", "desc_cn": "一碰即死但拥有 Holy Mantle（每房间一次免伤）。可免费拿恶魔房道具。", "desc_en": "One-hit death but has Holy Mantle (one free hit per room). Free devil room items.", "char_desc_cn": "永生的诅咒。他无法真正死亡（有 Holy Mantle），但代价是永远被困在生死之间。比游魂多了底气，也多了负担。", "char_desc_en": "The curse of immortality. Can't truly die (has Holy Mantle), but the cost is being trapped between life and death. More confident than The Lost, but also more burdened.", "img": "t_thelost"},
+      {"code": "T_LI", "en": "Tainted Lilith", "cn": "堕化莉莉丝", "pattern": "LHLLL LHHLM LHMLH", "quote_cn": "嘴巴才是最强的武器。", "quote_en": "The mouth is the strongest weapon.", "desc_cn": "Incubus 变为舌头射线（类似鞭子）。只能通过舌头攻击。Gello 可释放胎儿跟班。", "desc_en": "Incubus becomes tongue ray (whip-like). Can only attack via tongue. Gello releases fetal follower.", "char_desc_cn": "从召唤者变为直接攻击者。她的胎儿变成舌头射线，代表了从依赖他人到自己动手的转变。不再躲在别人身后，这次要亲自动手。", "char_desc_en": "From summoner to direct attacker. Fetus becomes tongue ray — represents the shift from depending on others to doing it yourself. No more hiding behind others — this time, hands-on.", "img": "t_lilith"},
+      {"code": "T_KP", "en": "Tainted Keeper", "cn": "堕化店主", "pattern": "LHHLH MLMHH HHHHL", "quote_cn": "做买卖，不做亏本生意。", "quote_en": "Do business, never at a loss.", "desc_cn": "金币血量上限提升为 3。击杀敌人掉落金币。商店物品更贵。可雇佣店员跟班。", "desc_en": "Coin HP cap raised to 3. Enemies drop coins on death. Shop items more expensive. Can hire shopkeeper followers.", "char_desc_cn": "商人本色的极致。金币仍然是血量但上限更高。代表了资本主义的极致——一切皆可定价，一切皆可交易。", "char_desc_en": "The ultimate merchant. Coins still serve as HP but with higher cap. Represents capitalism perfected — everything has a price, everything is tradeable.", "img": "t_keeper"},
+      {"code": "T_AP", "en": "Tainted Apollyon", "cn": "堕化亚坡仑", "pattern": "LLMMH MMLMH HHMLL", "quote_cn": "蝗虫过境，寸草不生。", "quote_en": "Locusts pass, nothing survives.", "desc_cn": "Void 变为 Abyss（将道具转化为蝗虫跟班）。蝗虫造成接触伤害。从吸收属性变为释放蝗虫大军。", "desc_en": "Void becomes Abyss (converts items into locust followers). Locusts deal contact damage. From absorbing stats to releasing locust armies.", "char_desc_cn": "从吞噬变为释放。他不再吸收道具，而是释放蝗虫大军摧毁一切。积攒了太多，是时候释放了。蝗虫过境，寸草不生。", "char_desc_en": "From devouring to releasing. No longer absorbs items — unleashes locust armies to destroy everything. Accumulated too much, time to release. Locusts pass, nothing survives.", "img": "t_apollyon"},
+      {"code": "T_BT", "en": "Tainted Bethany", "cn": "堕化伯大尼", "pattern": "HHMLL HHLMH MLMHH", "quote_cn": "信仰的火焰，可以焚烧一切。", "quote_en": "The flames of faith can burn everything.", "desc_cn": "携带 Lemegeton（生成魔法火焰跟班，每个火焰代表一个被动道具效果）。火焰可被击毁。", "desc_en": "Carries Lemegeton (generates magic flame wisps, each representing a passive item effect). Flames can be destroyed.", "char_desc_cn": "从虔诚的祈祷者变为狂热的布道者。她的火焰不再温和，而是具有毁灭性的力量。信仰的极端化——当你足够虔诚，火焰就能焚烧一切，包括自己。", "char_desc_en": "From devout prayer to fervent preacher. Her flames are no longer gentle — they carry destructive power. Faith taken to extremes — when devout enough, flames burn everything, including yourself.", "img": "t_bethany"},
+      {"code": "T_JC", "en": "Tainted Jacob", "cn": "堕化雅各和以扫", "pattern": "MHHLL LMHHL LHLHH", "quote_cn": "黑暗的以扫在身后追赶，我只能不停奔跑。", "quote_en": "Dark Esau chases behind me — I can only keep running.", "desc_cn": "Dark Esau 持续追踪雅各。被碰到直接进入恶魔房。无法被杀死，只能用 Anima Sola 暂时束缚。", "desc_en": "Dark Esau continuously tracks Jacob. Touch sends you to devil room. Cannot be killed, only temporarily restrained with Anima Sola.", "char_desc_cn": "被黑暗面追逐的人。Dark Esau 是他兄弟的暗影化身，永远在身后追赶，无法消灭，只能暂时束缚。你可以跑，但你永远跑不掉。", "char_desc_en": "Chased by his dark side. Dark Esau is his brother's shadow incarnation — always pursuing, cannot be destroyed, only temporarily bound. You can run, but you can never escape.", "img": "t_jacob"},
+      {"code": "T_FO", "en": "Tainted The Forgotten", "cn": "堕化遗骸", "pattern": "LMHLL HLLLM HHHHL", "quote_cn": "灵魂在外面，骨头在里面——一切都颠倒了。", "quote_en": "Soul outside, bones inside — everything is reversed.", "desc_cn": "骨骼不能移动，灵魂必须离开身体去攻击和拾取物品。灵魂可将骨骼扔到新位置。操控完全颠倒。", "desc_en": "Bones cannot move — soul must leave body to attack and pick up items. Soul can throw bones to new positions. Controls completely reversed.", "char_desc_cn": "内外颠倒的存在。灵魂在外面活动，骨骼反而成了需要保护的核心。代表了那些外表坚强、内心脆弱的人——你以为他是硬骨头，其实他的灵魂在外面流浪，无处安放。", "char_desc_en": "Inside-out existence. Soul operates outside while bones become the core to protect. Represents those who appear tough but are fragile inside — you think he's hard-boned, but his soul wanders outside, homeless.", "img": "t_theforgotten"},
+    ];
+    const questions = [
+      {"dim": "S1", "q": 1, "cn": "你在地牢里只剩半颗红心，面前有一扇未知的门。你会？", "en": "You're at half a red heart. A mysterious door stands before you. You:", "a_cn": "冲！反正死习惯了", "a_en": "Just charge in — I'm used to dying", "b_cn": "先在门外听听动静", "b_en": "Listen at the door first", "c_cn": "回去找血量回复再说", "c_en": "Go find healing first"},
+      {"dim": "S1", "q": 2, "cn": "Boss 战中你只剩最后一滴血。你会？", "en": "Boss fight, last sliver of HP. You:", "a_cn": "秀操作的时候到了！", "a_en": "Time to show off my skills!", "b_cn": "小心走位，找机会输出", "b_en": "Carefully dodge and find openings", "c_cn": "拼命跑，等安全了再说", "c_en": "Run and wait for safety"},
+      {"dim": "S2", "q": 3, "cn": "你更倾向于哪种战斗方式？", "en": "Which combat style do you prefer?", "a_cn": "冲脸近战，贴身肉搏", "a_en": "Rush in, melee combat", "b_cn": "远程消耗，安全输出", "b_en": "Ranged poke, safe damage", "c_cn": "召唤帮手，让别人打", "c_en": "Summon help, let others fight"},
+      {"dim": "S2", "q": 4, "cn": "面对一大群小怪，你会？", "en": "Facing a swarm of enemies, you:", "a_cn": "直接冲进去群殴", "a_en": "Charge straight into the mob", "b_cn": "拉怪逐个击杀", "b_en": "Pull and pick them off one by one", "c_cn": "用炸弹/AOE一次性清场", "c_en": "Use bombs/AOE to clear them all at once"},
+      {"dim": "S3", "q": 5, "cn": "你获得了一个「可能很有用也可能很废」的道具。你会？", "en": "You get an item that could be great or terrible. You:", "a_cn": "立刻用！", "a_en": "Use it immediately!", "b_cn": "先放着，关键时刻再用", "b_en": "Save it for a critical moment", "c_cn": "找机会测试一下效果", "c_en": "Find a chance to test its effect first"},
+      {"dim": "S3", "q": 6, "cn": "你发现了一个隐藏房间的入口，但没有炸弹。你会？", "en": "You find a secret room entrance but have no bombs. You:", "a_cn": "记住位置，以后再来", "a_en": "Remember the location, come back later", "b_cn": "满世界找炸弹", "b_en": "Search everywhere for a bomb", "c_cn": "放弃了，不值得为一个房间浪费时间", "c_en": "Give up — not worth the time"},
+      {"dim": "E1", "q": 7, "cn": "开局你拿到了一个很差的初始道具。你会？", "en": "You start with a terrible item. You:", "a_cn": "无所谓，靠操作就行", "a_en": "Whatever, I'll rely on skill", "b_cn": "有点烦，但继续打", "b_en": "Annoyed, but keep going", "c_cn": "直接重开！", "c_en": "Restart the run!"},
+      {"dim": "E1", "q": 8, "cn": "连续三次在同一个 Boss 手上翻车。你会？", "en": "You die to the same boss three times in a row. You:", "a_cn": "再试！我就不信打不过", "a_en": "Again! I won't accept defeat", "b_cn": "去查攻略看看怎么打", "b_en": "Look up a guide for the strategy", "c_cn": "先去刷点好道具再说", "c_en": "Go farm for better items first"},
+      {"dim": "E2", "q": 9, "cn": "你的血量已经被削到危险线以下。你会？", "en": "Your HP is below the danger threshold. You:", "a_cn": "没关系，我还能秀", "a_en": "No worries, I can still pull this off", "b_cn": "紧张起来了，更认真打", "b_en": "Getting nervous, playing more carefully", "c_cn": "心态崩了，开始乱打", "c_en": "Mental breakdown, playing sloppy"},
+      {"dim": "E2", "q": 10, "cn": "恶魔房里出现了一个强力道具，但代价是只剩半颗红心。你？", "en": "Devil room has a powerful item, but it costs leaving you at half a heart. You:", "a_cn": "拿了！富贵险中求", "a_en": "Take it! Fortune favors the bold", "b_cn": "犹豫很久，最后还是拿了", "b_en": "Hesitate, but take it anyway", "c_cn": "不要，太危险了", "c_en": "No, too risky"},
+      {"dim": "E3", "q": 11, "cn": "你更喜欢哪种游戏节奏？", "en": "What game pace do you prefer?", "a_cn": "速通！越快越好", "a_en": "Speedrun! Faster is better", "b_cn": "正常节奏，稳扎稳打", "b_en": "Normal pace, steady progress", "c_cn": "慢慢探索，不放过任何角落", "c_en": "Slow exploration, check every corner"},
+      {"dim": "E3", "q": 12, "cn": "你拿到了一个可以改变整局游戏走向的道具。你会？", "en": "You get a run-defining item. You:", "a_cn": "围绕它构建整套打法", "a_en": "Build my entire strategy around it", "b_cn": "配合已有的道具一起用", "b_en": "Combine it with existing items", "c_cn": "先试试再说", "c_en": "Just try it and see what happens"},
+      {"dim": "A1", "q": 13, "cn": "你路过一个金币，但拾取路线会多走几步。你会？", "en": "A coin is on the ground but picking it up means a detour. You:", "a_cn": "弯腰捡起来，有钱不拿是傻子", "a_en": "Pick it up — free money is free money", "b_cn": "看情况，顺路就捡", "b_en": "Depends — grab it if it's on the way", "c_cn": "不捡，浪费时间", "c_en": "Skip it, waste of time"},
+      {"dim": "A1", "q": 14, "cn": "你面前有两条路：一条通向已知的道具房，一条通向未知。你会？", "en": "Two paths: one leads to a known item room, one is unknown. You:", "a_cn": "先去已知的，稳妥", "a_en": "Go for the known one, play it safe", "b_cn": "先去未知的，万一有更好的", "b_en": "Try the unknown — might be better", "c_cn": "看地图布局再决定", "c_en": "Check the map layout first"},
+      {"dim": "A2", "q": 15, "cn": "你发现了一个「可以用血量换道具」的机器。你会？", "en": "You find a machine that trades HP for items. You:", "a_cn": "疯狂献血，直到机器爆炸", "a_en": "Donate blood until it explodes", "b_cn": "投几次看看运气", "b_en": "Try a few times to test my luck", "c_cn": "不投，血量比道具重要", "c_en": "Don't — HP is more valuable"},
+      {"dim": "A2", "q": 16, "cn": "你已经有了一个还不错的 Build。还会继续追求更强的道具吗？", "en": "You have a decent build. Do you still chase stronger items?", "a_cn": "当然！永远不嫌强", "a_en": "Of course! Can never be too strong", "b_cn": "看情况，够用就行", "b_en": "It depends — good enough is fine", "c_cn": "不冒险了，稳着打完", "c_en": "Stop gambling, play safe to finish"},
+      {"dim": "A3", "q": 17, "cn": "你会选择哪个挑战？", "en": "Which challenge would you pick?", "a_cn": "全程无伤通关", "a_en": "No-hit clear", "b_cn": "限时通关", "b_en": "Speedrun clear", "c_cn": "最低配置通关", "c_en": "Minimalist build clear"},
+      {"dim": "A3", "q": 18, "cn": "你更享受游戏中的哪个瞬间？", "en": "Which moment in the game do you enjoy most?", "a_cn": "Boss 战的极限反杀", "a_en": "Clutch boss kill at low HP", "b_cn": "完美无伤的走位秀", "b_en": "Flawless dodge showcase", "c_cn": "抽到超稀有道具的惊喜", "c_en": "The surprise of getting a rare item"},
+      {"dim": "Ac1", "q": 19, "cn": "面对一道你解不开的谜题。你会？", "en": "Facing a puzzle you can't solve. You:", "a_cn": "一直试到解开为止", "a_en": "Keep trying until I solve it", "b_cn": "先跳过，回来再想", "b_en": "Skip it, come back later", "c_cn": "查攻略", "c_en": "Look up the solution"},
+      {"dim": "Ac1", "q": 20, "cn": "你已经玩了 100 小时。你觉得？", "en": "You've played 100 hours. How do you feel?", "a_cn": "才刚开始！还有好多没解锁", "a_en": "Just getting started! So much left to unlock", "b_cn": "差不多了，核心内容都体验了", "b_en": "Pretty satisfied, experienced most of the core", "c_cn": "该换下一个游戏了", "c_en": "Time to move to the next game"},
+      {"dim": "Ac2", "q": 21, "cn": "你更倾向于哪种游戏策略？", "en": "Which gameplay strategy appeals to you?", "a_cn": "无脑暴力输出流", "a_en": "Brute force damage build", "b_cn": "防御+回血持久战", "b_en": "Defense + healing sustain", "c_cn": "特殊机制/彩蛋收集", "c_en": "Special mechanics / easter egg hunting"},
+      {"dim": "Ac2", "q": 22, "cn": "你获得了一个可以无限使用但效果随机的主动道具。你会？", "en": "You get an active item with unlimited uses but random effects. You:", "a_cn": "疯狂使用，享受随机性", "a_en": "Spam it — embrace the chaos", "b_cn": "在安全的时候偶尔用用", "b_en": "Use it occasionally in safe moments", "c_cn": "换成更稳定的道具", "c_en": "Swap for a more consistent item"},
+      {"dim": "Ac3", "q": 23, "cn": "你会选择哪种初始状态？", "en": "Which starting state would you choose?", "a_cn": "高攻低血，速战速决", "a_en": "High attack, low HP — quick fights", "b_cn": "均衡属性，全面发展", "b_en": "Balanced stats, well-rounded", "c_cn": "高血低攻，慢慢磨", "c_en": "High HP, low attack — slow grind"},
+      {"dim": "Ac3", "q": 24, "cn": "你在挑战一个从未见过的 Boss。你？", "en": "You're fighting a boss you've never seen before. You:", "a_cn": "先莽一波试试伤害", "a_en": "Rush in first to test its damage", "b_cn": "先观察攻击模式", "b_en": "Observe its attack patterns first", "c_cn": "死一次记住招式，下次再打", "c_en": "Die once to learn its moves, then fight properly next time"},
+      {"dim": "So1", "q": 25, "cn": "你会把多余的道具留给下一关，还是现在就用掉？", "en": "Save extra items for the next floor, or use them now?", "a_cn": "现在就用，活在当下", "a_en": "Use them now — live in the moment", "b_cn": "留到关键时刻", "b_en": "Save for the right moment", "c_cn": "看当前血量和状态再决定", "c_en": "Decide based on current HP and situation"},
+      {"dim": "So1", "q": 26, "cn": "你更享受独自游戏还是和朋友一起？", "en": "Do you prefer playing solo or with friends?", "a_cn": "单人！我的世界我做主", "a_en": "Solo! My world, my rules", "b_cn": "偶尔联机也不错", "b_en": "Multiplayer is nice sometimes", "c_cn": "有伴更好，独乐不如众乐", "c_en": "Better with company — shared fun is more fun"},
+      {"dim": "So2", "q": 27, "cn": "在多人模式中，你更倾向于？", "en": "In multiplayer, you tend to:", "a_cn": "当队长，指挥全局", "a_en": "Lead the team, call the shots", "b_cn": "配合队友，做好自己分内的事", "b_en": "Support the team, do your part", "c_cn": "自由行动，各玩各的", "c_en": "Free roam, everyone does their own thing"},
+      {"dim": "So2", "q": 28, "cn": "你的队友犯了一个低级错误导致团灭。你会？", "en": "Your teammate makes a noob mistake causing a wipe. You:", "a_cn": "直接喷！", "a_en": "Rage at them!", "b_cn": "耐心指出错误", "b_en": "Patiently point out the mistake", "c_cn": "无所谓，再来一次呗", "c_en": "Whatever, let's try again"},
+      {"dim": "So3", "q": 29, "cn": "你看到别人用了一个你从来没想到的骚操作。你会？", "en": "You see someone use a clever trick you never thought of. You:", "a_cn": "立刻学起来！", "a_en": "Learn it immediately!", "b_cn": "觉得挺有意思，记下来", "b_en": "Interesting, I'll remember that", "c_cn": "我有我自己的打法", "c_en": "I have my own style"},
+      {"dim": "So3", "q": 30, "cn": "你在排行榜上看到自己的名次落后于朋友。你会？", "en": "You see your ranking is below your friend's. You:", "a_cn": "不服！必须超过他！", "a_en": "Not acceptable! I must surpass them!", "b_cn": "有点在意，但不太上心", "b_en": "A little concerned, but not obsessed", "c_cn": "排行榜什么的，无所谓啦", "c_en": "Leaderboards? Whatever"},
+    ];
+    const dimensions = [
+      {"code": "S1", "cn": "勇气", "en": "Courage", "l_cn": "谨慎保守，趋利避害", "l_en": "Cautious and conservative", "h_cn": "胆大无畏，迎难而上", "h_en": "Fearless, charges headfirst"},
+      {"code": "S2", "cn": "战斗风格", "en": "Combat Style", "l_cn": "策略优先，运筹帷幄", "l_en": "Strategy first, calculated moves", "h_cn": "莽就完了，以力破巧", "h_en": "Just rush in, brute force wins"},
+      {"code": "S3", "cn": "冒险精神", "en": "Adventurousness", "l_cn": "稳扎稳打，步步为营", "l_en": "Steady and methodical", "h_cn": "大胆探索，不惧未知", "h_en": "Bold explorer, embraces the unknown"},
+      {"code": "E1", "cn": "韧性", "en": "Resilience", "l_cn": "容易放弃，心态脆弱", "l_en": "Gives up easily, fragile mindset", "h_cn": "百折不挠，越挫越勇", "h_en": "Unbreakable, grows stronger from setbacks"},
+      {"code": "E2", "cn": "压力反应", "en": "Pressure Response", "l_cn": "压力下崩溃或逃避", "l_en": "Crumbles or flees under pressure", "h_cn": "压力越大越兴奋", "h_en": "Thrives under pressure"},
+      {"code": "E3", "cn": "节奏偏好", "en": "Pace Preference", "l_cn": "慢节奏，精打细算", "l_en": "Slow pace, meticulous planning", "h_cn": "快节奏，追求效率", "h_en": "Fast pace, efficiency driven"},
+      {"code": "A1", "cn": "资源观", "en": "Resource View", "l_cn": "极简主义，够用就好", "l_en": "Minimalist, enough is enough", "h_cn": "收集狂魔，一颗都不放过", "h_en": "Collector, never leave anything behind"},
+      {"code": "A2", "cn": "贪婪度", "en": "Greed", "l_cn": "知足常乐，见好就收", "l_en": "Content, knows when to stop", "h_cn": "永远不满足，追求极致", "h_en": "Never satisfied, always pushing for more"},
+      {"code": "A3", "cn": "挑战欲", "en": "Challenge Drive", "l_cn": "轻松模式，享受过程", "l_en": "Easy mode, enjoy the journey", "h_cn": "自我设限，追求极限", "h_en": "Self-imposed limits, seeks the extreme"},
+      {"code": "Ac1", "cn": "耐心", "en": "Patience", "l_cn": "急性子，要就要现在", "l_en": "Impatient, wants it now", "h_cn": "愿意花大量时间钻研", "h_en": "Willing to invest hours in mastery"},
+      {"code": "Ac2", "cn": "玩法偏好", "en": "Playstyle", "l_cn": "简单直接，不搞花的", "l_en": "Simple and direct, no frills", "h_cn": "研究机制，利用漏洞", "h_en": "Study mechanics, exploit interactions"},
+      {"code": "Ac3", "cn": "风险偏好", "en": "Risk Taking", "l_cn": "保守稳健，永远选安全选项", "l_en": "Conservative, always picks the safe option", "h_cn": "高风险高回报，赌一把", "h_en": "High risk high reward, let's gamble"},
+      {"code": "So1", "cn": "社交倾向", "en": "Social Tendency", "l_cn": "独狼型，自给自足", "l_en": "Lone wolf, self-sufficient", "h_cn": "团队型，重视合作", "h_en": "Team player, values cooperation"},
+      {"code": "So2", "cn": "领导力", "en": "Leadership", "l_cn": "跟随服从，不爱出头", "l_en": "Follows others, doesn't lead", "h_cn": "天生领袖，指挥若定", "h_en": "Natural leader, commands with confidence"},
+      {"code": "So3", "cn": "竞争心", "en": "Competitiveness", "l_cn": "佛系随缘，重在参与", "l_en": "Casual, just here to participate", "h_cn": "胜负欲爆棚，必须赢", "h_en": "Must win, intensely competitive"},
+    ];
+
+let lang = 'cn';
+let currentQ = 0;
+let answers = [];
+
+function toggleLang() {
+  lang = lang === 'cn' ? 'en' : 'cn';
+  render();
+}
+
+function t(cn, en) { return lang === 'cn' ? cn : en; }
+
+function render() {
+  const app = document.getElementById('app');
+  if (currentQ === 0 && answers.length === 0) {
+    renderWelcome(app);
+  } else if (answers.length < questions.length) {
+    renderQuestion(app);
+  } else {
+    renderResult(app);
+  }
+}
+
+function renderWelcome(el) {
+  el.innerHTML = `
+    <div class="welcome fade-in">
+      <h1>${t('以撒人格测试','IsaacTI')}</h1>
+      <p class="subtitle">${t(
+        '你是以撒的结合中的哪个人物？<br>通过 30 道题目，找出你在 34 个人物中最匹配的那一个！',
+        'Which Binding of Isaac character are you?<br>Answer 30 questions to find your match among 34 characters!'
+      )}</p>
+      <div class="char-count">${characters.length} ${t('个人物','Characters')}</div>
+      <button class="btn start-btn" onclick="startTest()">${t('开始测试','START TEST')}</button>
+    </div>
+  `;
+}
+
+function startTest() {
+  currentQ = 1;
+  answers = [];
+  render();
+}
+
+function renderQuestion(el) {
+  const q = questions[currentQ - 1];
+  const dim = dimensions.find(d => d.code === q.dim);
+  const pct = Math.round((currentQ - 1) / questions.length * 100);
+  const prevAnswer = answers[currentQ - 1];
+
+  el.innerHTML = `
+    <div class="fade-in">
+      <div class="progress-text">${t('第','Question')} ${currentQ} / ${questions.length}</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="question-card">
+        <div class="question-dim">${dim ? t(dim.cn, dim.en) : q.dim}</div>
+        <div class="question-text">${t(q.cn, q.en)}</div>
+        <div class="options">
+          ${['a','b','c'].map((k,i) => `
+            <button class="option ${prevAnswer===i+1?'selected':''}" onclick="selectOption(${i+1})">
+              <span class="opt-label">${String.fromCharCode(65+i)}</span>
+              ${t(q[k+'_cn'], q[k+'_en'])}
+            </button>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function selectOption(val) {
+  answers[currentQ - 1] = val;
+  if (currentQ < questions.length) {
+    currentQ++;
+  }
+  render();
+}
+
+function calcScores() {
+  const dims = ['S1','S2','S3','E1','E2','E3','A1','A2','A3','Ac1','Ac2','Ac3','So1','So2','So3'];
+  const scores = {};
+  dims.forEach(d => {
+    const qs = questions.filter(q => q.dim === d);
+    let sum = 0;
+    qs.forEach(q => {
+      const idx = questions.indexOf(q);
+      sum += (answers[idx] || 2);
+    });
+    scores[d] = sum;
+  });
+  return scores;
+}
+
+function scoreToLevel(score) {
+  if (score <= 3) return 'L';
+  if (score === 4) return 'M';
+  return 'H';
+}
+
+function calcPattern(scores) {
+  const dims = ['S1','S2','S3','E1','E2','E3','A1','A2','A3','Ac1','Ac2','Ac3','So1','So2','So3'];
+  return dims.map(d => scoreToLevel(scores[d])).join('');
+}
+
+function manhattanDist(p1, p2) {
+  const map = {'L':0,'M':1,'H':2};
+  let dist = 0;
+  for (let i = 0; i < p1.length; i++) {
+    dist += Math.abs((map[p1[i]]||1) - (map[p2[i]]||1));
+  }
+  return dist;
+}
+
+function calcMatch(dist) {
+  return Math.max(0, Math.round((1 - dist / 30) * 100));
+}
+
+function findMatches(pattern) {
+  return characters.map(c => {
+    const p = c.pattern.replace(/\s/g, '');
+    const dist = manhattanDist(pattern, p);
+    return { ...c, dist, match: calcMatch(dist) };
+  }).sort((a, b) => b.match - a.match || a.dist - b.dist);
+}
+
+function renderResult(el) {
+  const scores = calcScores();
+  const pattern = calcPattern(scores);
+  const matches = findMatches(pattern);
+  const top = matches[0];
+  const isEasterEgg = pattern === 'MMMMMMMMMMMMMMM';
+  const isChaos = pattern === 'HHHHHHHHHHHHHHH' || pattern === 'LLLLLLLLLLLLLLL';
+
+  const patternDisplay = pattern.replace(/\s/g,'').replace(/(.3)/g,'$1 ').trim();
+
+  const dimCodes = ['S1','S2','S3','E1','E2','E3','A1','A2','A3','Ac1','Ac2','Ac3','So1','So2','So3'];
+  const dimLabels = dimCodes.map(d => {
+    const dim = dimensions.find(dm => dm.code === d);
+    return dim ? t(dim.cn, dim.en) : d;
+  });
+
+  const dimScores = dimCodes.map(d => scores[d]);
+
+  el.innerHTML = `
+    <div class="result-page fade-in">
+      <div class="result-title">${t('你的匹配结果','YOUR RESULT')}</div>
+
+      <div class="match-card">
+        <img class="char-img" src="${imgMap[top.img] || ''}" alt="${top.en}" />
+        <div class="char-name">${top.en}</div>
+        <div class="char-name-cn">${top.cn}</div>
+        <div class="match-pct">${top.match}%</div>
+        <div class="char-quote">${t(top.quote_cn, top.quote_en)}</div>
+        <div class="char-desc">${t(top.char_desc_cn, top.char_desc_en)}</div>
+      </div>
+
+      <div class="radar-container">
+        <canvas id="radarChart" width="400" height="400"></canvas>
+      </div>
+
+      <div class="pattern-display">
+        <div class="pattern-label">${t('你的模式代码','Your Pattern Code')}</div>
+        ${patternDisplay}
+      </div>
+
+      ${isEasterEgg ? `
+        <div class="easter-egg">
+          <div class="egg-title">🥚 ${t('彩蛋触发！','Easter Egg!')}</div>
+          <div class="egg-text">${t('所有维度都是 M……你是 Echo 吗？一个真正的虚空行者。','All dimensions are M... Are you Echo? A true void walker.')}</div>
+        </div>
+      ` : ''}
+      ${isChaos ? `
+        <div class="easter-egg">
+          <div class="egg-title">🌀 ${t('彩蛋触发！','Easter Egg!')}</div>
+          <div class="egg-text">${t('你的选择如此极端……混沌之王降临！','Your choices are so extreme... The Chaos King arrives!')}</div>
+        </div>
+      ` : ''}
+
+      <div class="ranking">
+        <h3>${t('匹配排行','Match Ranking')}</h3>
+        ${matches.slice(0,5).map((m,i) => `
+          <div class="rank-item">
+            <div class="rank-num">#${i+1}</div>
+            <img class="rank-img" src="${imgMap[m.img] || ''}" alt="${m.en}" />
+            <div class="rank-info">
+              <div class="rank-name">${m.cn} ${m.en}</div>
+              <div class="rank-sub">${t(m.desc_cn, m.desc_en).substring(0,40)}...</div>
+            </div>
+            <div class="rank-pct">${m.match}%</div>
+          </div>
+        `).join('')}
+      </div>
+
+      <button class="btn restart-btn" onclick="restart()">${t('重新测试','RESTART')}</button>
+      <div class="footer">IsaacTI - ${t('以撒人格测试','The Binding of Isaac Personality Test')}</div>
+    </div>
+  `;
+
+  drawRadar(dimLabels, dimScores);
+}
+
+function restart() {
+  currentQ = 0;
+  answers = [];
+  render();
+}
+
+function drawRadar(labels, scores) {
+  const canvas = document.getElementById('radarChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = 400, H = 400;
+  canvas.width = W;
+  canvas.height = H;
+  const cx = W/2, cy = H/2;
+  const R = 150;
+  const n = labels.length;
+
+  ctx.clearRect(0, 0, W, H);
+
+  for (let ring = 1; ring <= 3; ring++) {
+    const r = R * ring / 3;
+    ctx.beginPath();
+    for (let i = 0; i <= n; i++) {
+      const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.strokeStyle = 'rgba(255,107,107,0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  for (let i = 0; i < n; i++) {
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + R * Math.cos(angle), cy + R * Math.sin(angle));
+    ctx.strokeStyle = 'rgba(255,107,107,0.2)';
+    ctx.stroke();
+  }
+
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const idx = i % n;
+    const val = scores[idx] / 6;
+    const angle = (Math.PI * 2 * idx / n) - Math.PI / 2;
+    const x = cx + R * val * Math.cos(angle);
+    const y = cy + R * val * Math.sin(angle);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.fillStyle = 'rgba(255,107,107,0.25)';
+  ctx.fill();
+  ctx.strokeStyle = '#ff6b6b';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  for (let i = 0; i < n; i++) {
+    const val = scores[i] / 6;
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const x = cx + R * val * Math.cos(angle);
+    const y = cy + R * val * Math.sin(angle);
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff6b6b';
+    ctx.fill();
+  }
+
+  ctx.fillStyle = '#b090b0';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  for (let i = 0; i < n; i++) {
+    const angle = (Math.PI * 2 * i / n) - Math.PI / 2;
+    const lr = R + 25;
+    const x = cx + lr * Math.cos(angle);
+    const y = cy + lr * Math.sin(angle);
+    ctx.fillText(labels[i], x, y + 4);
+  }
+}
+
+render();
+</script>
+</body>
+</html>
